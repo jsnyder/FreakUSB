@@ -1,0 +1,228 @@
+// Main page for Doxygen documentation
+
+/************************************************************************/
+/*!
+    \mainpage
+    Written by Christopher Wang (Akiba), FreakLabs
+
+    \section freakusb_intro Introduction to FreakUSB
+    FreakUSB is an open source USB device stack licensed under GPL v2. It uses intellectual property in
+the form of the USB 2.0 specification and device classes which is available from www.usb.org.
+
+*/
+
+/************************************************************************/
+/*!
+    \page freakusb_license License
+    The FreakUSB device stack is currently licensed unded Modified BSD. Its one of the most open licenses and it also removes the attribution clause found under the original BSD license.
+
+    \verbatim
+    Copyright (C) 2009 FreakLabs
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+    3. Neither the name of the the copyright holder nor the names of its contributors
+       may be used to endorse or promote products derived from this software
+       without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS'' AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+    Originally written by Christopher Wang aka Akiba.
+    Please post support questions to the FreakLabs forum.
+    \endverbatim
+
+/************************************************************************/
+/*!
+\page freakusb_architecure FreakUSB Architecture
+The architecture of the FreakUSB stack consists of three layers, with the final application layer
+sitting at the top. The bottom-most layer is the hardware layer. This is where the hardware specific
+code goes. Above that is the protocol layer which handles the USB protocol specific code. Above that
+is the class layer which handles the USB device class driver. Finally, the application sits at the
+top of the stack.
+
+<HR>
+\image html freakusb_arch.jpg "FreakUSB Architecture Block Diagram" width=5cm
+<HR>
+
+\section freakusb_hw Hardware Layer
+The hardware layer is where the platform specific code goes. This layer contains three files:
+
+-# hw.c - contains miscellaneous hardware specific functions
+-# isr.c - contains the interrupt service routines required to operate USB
+-# ep.c - contains the functions required to manipulate the USB endpoints
+
+The hw and isr files are used to interface directly to the hardware. They are basically the driver
+for the USB controller that is being used. The endpoint file is used to control communications via
+the endpoint registers on the controllers. Endpoint registers are very hardware specific and each
+controller has a different method of implementing them. The endpoint file will interface to the next
+layer up which is the USB protocol layer.
+
+\section freakusb_buf FreakUSB Buffers
+One of the essentials of a protocol stack is buffer handling. It provides the storage mechanism for
+the data as its shuffled between layers. Although there are countless buffer mechanisms that are
+used, this stack uses a very simple one. It basically creates an array fixed size buffers, one for
+each endpoint. All buffers are the same size, which was just to make things easier, although it's
+pretty inefficient.
+
+The buffers are controlled by the buf.c file which is located in the USB directory. Although it's
+not exactly part of the USB layer, the code isn't hardware specific which was why it went in here.
+The buffers are configured as circular fifos (aka ring buffers). Circular fifos have a read pointer,
+write pointer, and if either pointer reaches the max buffer size, they roll back to the start of the
+buffer.
+
+Circular buffers are more efficient than a standalone buffer because most of the time, you won't be
+transferring data at the maximum buffer size. Hence, if there's room available inside the buffer,
+you can store multiple transfers.
+
+This buffer handling scheme was chosen because it's simple and doesn't take up a lot of code space.
+
+\section freakusb_prot FreakUSB Protocol Layer
+The USB protocol layer handles the USB transfers and protocol decoding. A USB device never initiates
+any transactions so this layer basically decodes all the requests from the host and either handles
+them if they are standard requests or routes them to the class driver if they are class specific.
+
+The protocol layer requires three callback functions from the class driver in order to operate. The
+three callback functions are for endpoint initialization, class specific request handling, and rx
+data handling.
+
+The first thing that happens when the device is plugged into the host is that the device needs to be
+enumerated. That means that the host will discover the device and assign it a device address. The
+host will also request information about the device's capabilities, configuration, supported device
+class, and other miscellaneous info. After the enumeration, the host will then set the configuration
+which is the signal for the device to initialize the class specific endpoints. This is when the
+endpoint initialization callback will be invoked.
+
+After that, the host may send class specific requests to get more information about the class driver
+that is being used. Since there are many different types of devices within a device class, the class
+specific descriptors will help the host narrow down the exact device type so it can control it
+properly. Hence the need for the class specific request handler. Here's a shot of what the
+FreakUSB looks like from a USB protocol analyzer. The following is the enumeration sequence on a
+WinXP computer:
+
+<HR>
+\image html freakusb_analyzer.jpg "FreakUSB Analyzer Capture" width=5cm
+<HR>
+
+And finally, the USB protocol layer can only receive and transmit data. It knows nothing about what
+to do with received data or what format the transmitted data is in. It is just there as a transport
+mechanism and will blindly move data back and forth. So in order to hook the class driver into the
+USB protocol layer, the protocol layer's tx function is exposed, and the class rx handler callback
+is required to pass data between the layers.
+
+The USB protocol layer also contains the main USB polling function which should be located in the
+main function's endless loop. The poll function checks the flags in the USB protocol control block
+to see if any USB events occurred. If a USB event has occurred, it will handle them accordingly.
+
+There are three types of events that can occur:
+
+- SETUP data available - This means that setup data has come in over the control endpoint and must
+be handled. The control endpoint is a special endpoint in USB and is always located at endpoint 0.
+It can go in both directions (IN and OUT) and is used to initialize the bus and manage the bus
+transactions.
+
+- RX data available - That means that data has come in on one of the endpoints other than endpoint
+0. When this event is detected, we will jump to the registered class rx handler so that it can
+process the received data.
+
+- TX data available - This means that someone loaded a transmit buffer with data and that it needs
+to be sent to the particular endpoint fifo.
+
+\section freakusb_class FreakUSB Class Layer
+The USB class layer gives personality to the USB device. Whereas the USB layer is just blindly
+transporting data back and forth, the class layer actually implements a specific functionality. The
+most common USB device classes are the mass storage class (which emulates a hard drive or other mass
+storage device), the communications class (in which one of the devices specified is a Virtual COM
+port ...very useful now that most PCs are losing their serial ports), digital still camera class (to
+retrieve images off of digital cameras, and printer class (for uhhhh...printers).
+
+As of this writing, the stack only implements the communications class with the Virtual COM port
+functionality. It's mostly because most designs are slowly moving to USB, however engineers are
+still stuck in a time warp 30 years ago where serial ports were cutting edge. That includes me. One
+of the main reasons this stack came into existence is because I got tired of using the serial port.
+The USB Virtual COM class can give serial like functionality, but at much higher transfer speeds,
+compatible with all PCs, and also provides a power source for my boards. What more could you ask
+for?
+
+\section freakusb_app FreakUSB Application Layer
+This is the layer that you as the implementor will write. Some applications are given in the demo
+folder. At this layer, the main things that need be done are:
+
+- Initialize the USB and class drivers
+- Register any callbacks with the class driver
+- Put the usb_poll() function in the main loop
+
+After that, the rest should be handled by the stack...if things work correctly...bwa ha ha ha...
+
+*/
+
+/************************************************************************/
+/*!
+\page freakusb_install Installation and Build Instructions
+
+\section freakz_install_build Building the Code
+The current code is targeted to the Atmel AT90USB AVR MCU with built-in USB port. To build the code
+for that target, you will need to download the latest release of WinAVR. Installing it is easy and
+you just follow the instructions. This will install avr-gcc, make, and library files needed to
+build the code.
+
+Once you have the tools installed, then you simply go to the demo directory of your choice
+(currently there is only one so technically, there is no choice) and type "make". After that, you
+will need to have some kind of device such as AVRISP MK-II or the AVR JTAG ICE to program the chip.
+
+\section freakusb_install_install Installing the Windows Driver
+Inside the FreakUSB/class/cdc directory is a Windows INF file that is matched to the Vendor ID and
+Product ID found in the descriptor file (desc.c). On a Windows system, you only need the inf file in
+order to get the device working. That's because the Windows Virtual Serial Port driver is built into
+all Windows XP systems, and possibly Windows 2000 systems as well (although I'm not particularly
+sure).
+
+Here is a visual tutorial on installing the Virtual COM Port inf file:
+
+<HR>
+\image html freakusb_install_1.jpg "This is what you should see when you first plug in" width=5cm
+<HR>
+
+<HR>
+\image html freakusb_install_2.jpg "Choose to specify the location of the file" width=5cm
+<HR>
+
+<HR>
+\image html freakusb_install_3.jpg "Specify the directory the inf file is in" width=5cm
+<HR>
+
+<HR>
+\image html freakusb_install_4.jpg "Whew...glad that's over" width=5cm
+<HR>
+
+<HR>
+\image html freakusb_install_5.jpg "Locate the COM number in device manager" width=5cm <HR>
+
+
+This code hasn't been tested on Windows Vista systems so it's possible that it could cause
+your computer to explode. Just kidding. But seriously, if you're an engineer, you shouldn't be using
+Vista in the first place. Once I get hold of a Vista machine, I'll test it out and see if everything
+works on that OS as well :)
+*/
+
+
+
+
+

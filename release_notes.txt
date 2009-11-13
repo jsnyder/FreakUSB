@@ -1,0 +1,16 @@
+2008-11-17 - FreakUSB v0.5
+
+	- Initial release.
+
+
+2009-11-13 - FreakUSB v0.7 
+	- Updated licenses to Modified BSD.
+	- Added flow control to prevent buffer overflow. If buffer can't accomodate received data, it will instruct the chip to NAK
+	the host until the current buffer data has been processed and new data in FIFO has been safely moved to the buffers.
+	- Added smarter buffer sizing. Max buffer size only needs to be set in freakusb.h and all FIFO, buffer, and max packet sizes
+	will automatically be set.
+	- Added command line support in main demo. For demo, you can now have a command line to send instructions into via a terminal.
+	A command table is also provided and you can add your own commands accessible via the command line.
+	- Added support for AT90USB162 and ATMega32U4. The AT90USB162 was a bit of a challenge because there is no builtin VBUS detection
+	to detect when the device is connected to a host. VBUS must be connected to an interrupt and the interrupt must be mapped to 
+	the ISR found in isr.c. 
