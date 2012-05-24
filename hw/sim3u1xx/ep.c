@@ -235,12 +235,10 @@ void ep_write(U8 ep_num)
             SI32_USBEP_A_write_fifo_u8( usb_ep[ ep_num - 1 ], usb_buf_read( ep_num ) );
         }
 
-
         // clearing these two will send the data out
         SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
         SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
     }
-
 }
 
 /**************************************************************************/
@@ -374,7 +372,6 @@ void ep_init()
     // disable and clear all endpoints
     for (i=0; i<MAX_EPS; i++)
     {
-        ep_select(i);
         ep_disable(i);
         ep_cfg_clear(i);
     }
@@ -387,7 +384,7 @@ void ep_init()
     ep_config(EP_CTRL, CONTROL, DIR_OUT, MAX_PACKET_SZ);
 
     // set the rx setup interrupt to received the enumeration interrupts
-    ep_select(EP_CTRL);
+    //ep_select(EP_CTRL);
 }
 
 /**************************************************************************/
@@ -404,10 +401,10 @@ void ep_set_addr(U8 addr)
     ep_send_zlp(EP_CTRL);
 
     // only write the top 7 bits of the address. the 8th bit is for enable
-    UDADDR = addr & 0x7F;
+    SI32_USB_A_write_faddr( SI32_USB_0, addr & 0x7F);
 
-    // enable the address after the host acknowledges the frame was sent
-    UDADDR |= (1 << ADDEN);
+    // Wait for address to be updated
+    while( SI32_USB_A_is_function_address_updating( SI32_USB_0 ) );
 }
 
 
@@ -418,15 +415,26 @@ void ep_set_addr(U8 addr)
 /**************************************************************************/
 U8 ep_intp_get_num()
 {
-    U8 i;
+ 
+    if( SI32_USB_A_is_ep0_interrupt_pending( SI32_USB_0 ) )
+        return 0;
 
-    for (i=0; i<MAX_EPS; i++)
-    {
-        if (UEINT & (1<<i))
-        {
-            return i;
-        }
-    }
+    if( SI32_USB_A_is_ep1_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep1_out_interrupt_pending( SI32_USB_0 ))
+        return 1;
+
+    if( SI32_USB_A_is_ep2_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep2_out_interrupt_pending( SI32_USB_0 ))
+        return 2;
+
+    if( SI32_USB_A_is_ep3_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep3_out_interrupt_pending( SI32_USB_0 ))
+        return 3;
+
+    if( SI32_USB_A_is_ep4_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep4_out_interrupt_pending( SI32_USB_0 ))
+        return 4;
+
     return 0xFF;
 }
 
@@ -438,7 +446,22 @@ U8 ep_intp_get_num()
 /**************************************************************************/
 U8 ep_intp_get_src()
 {
-    U8 i;
+    //U8 i;
+
+
+    if( USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
+        return;
+
+    if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
+        return;
+
+    if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
+        return;
+
+    if( SI32_USB_A_is_start_of_frame_interrupt_pending( SI32_USB_0 ) )
+        return;
+
+
 
     // get the intp src
     for (i=0; i<8; i++)
@@ -448,7 +471,7 @@ U8 ep_intp_get_src()
             return i;
         }
     }
-    return 0xFF;
+    return ep_intp_get_num();
 }
 
 /**************************************************************************/
