@@ -38,7 +38,14 @@
 #ifndef HW_H
 #define HW_H
 
-#define OPRDYI 0
+enum
+{
+    OPRDYI = 0,
+    IPRDYI,
+    SUSI,
+    RESI,
+    RSTI,
+}
 
 void hw_init();
 void hw_intp_disable();

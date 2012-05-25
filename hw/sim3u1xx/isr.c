@@ -177,16 +177,6 @@ void USB0_IRQHandler( void )
 
         // clear the intps -- not sure if I need to do this?
         break;
-    case STALLEDI:
-        break;
-    case NAKOUTI:
-        break;
-    case RWAL:
-        break;
-    case NAKINI:
-        break;
-    case FIFOCON:
-        break;
     default:
         break;
     }

@@ -468,28 +468,18 @@ U8 ep_intp_get_src()
         return IPRDYI;
 
     if( USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
-        return;
+        return SUSI;
 
     if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
-        return;
+        return RESI;
 
     if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
-        return;
+        return RSTI;
 
     if( SI32_USB_A_is_start_of_frame_interrupt_pending( SI32_USB_0 ) )
-        return;
+        return SOFI;
 
-
-
-    // get the intp src
-    for (i=0; i<8; i++)
-    {
-        if ((UEINTX & (1<<i)) && (UEIENX & (1<<i)))
-        {
-            return i;
-        }
-    }
-    return ep_intp_get_num();
+    return 0xFF;
 }
 
 /**************************************************************************/
