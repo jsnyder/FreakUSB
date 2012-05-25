@@ -420,7 +420,6 @@ void ep_set_addr(U8 addr)
 /**************************************************************************/
 U8 ep_intp_get_num()
 {
- 
     if( SI32_USB_A_is_ep0_interrupt_pending( SI32_USB_0 ) )
         return 0;
 
@@ -460,13 +459,13 @@ U8 ep_intp_get_num()
 //  case FIFOCON: for IN: Set by hardware when the current bank is free, OUT: Set by hardware when a new OUT message is stored in the current bank,
 U8 ep_intp_get_src()
 {
-    //U8 i;
     if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
         return OPRDYI;
 
     if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) == 0 )
         return IPRDYI;
 
+    // EP0 / Control Endpoint Sources
     if( USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
         return SUSI;
 
@@ -493,12 +492,18 @@ void ep_drain_fifo(U8 ep)
     U8 byte_cnt;
     usb_pcb_t *pcb = usb_pcb_get();
     
-    ep_select(ep);
-    byte_cnt = UEBCLX;
+    if( ep == 0 )
+        byte_cnt = SI32_USB_A_read_ep0_count( SI32_USB_0 );
+    else
+        byte_cnt = SI32_USBEP_A_read_data_count( usb_ep[ ep - 1 ] );
+
     if (byte_cnt <= (MAX_BUF_SZ - pcb->fifo[ep].len))
     {
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);
-        FIFOCON_INT_CLR();
+        if( ep == 0 )
+            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+        else
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
     }   
 }

@@ -45,6 +45,7 @@ enum
     SUSI,
     RESI,
     RSTI,
+    SOFI
 }
 
 void hw_init();

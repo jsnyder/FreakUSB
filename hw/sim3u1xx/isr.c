@@ -68,12 +68,10 @@ void intp_clear_all()
 /**************************************************************************/
 void intp_suspend()
 {
-    SUSP_INT_CLR();
-    WAKEUP_INT_ENB();
-    WAKEUP_INT_CLR();
+    SI32_USB_A_clear_suspend_interrupt( SI32_USB_0 );
 
     // freeze the clock and turn off the USB PLL
-    USBCON |= (1 << FRZCLK);
+    SI32_USB_A_suspend_usb_oscillator( SI32_USB_0 );
 }
 
 /**************************************************************************/
@@ -83,9 +81,8 @@ void intp_suspend()
 /**************************************************************************/
 void intp_resume()
 {
-    WAKEUP_INT_DIS();
-    RESM_INT_CLR();
-    RESM_INT_DIS();
+    SI32_USB_A_clear_resume_interrupt( SI32_USB_0 );
+
 }
 
 /**************************************************************************/
@@ -96,7 +93,8 @@ void intp_resume()
 void intp_wakeup()
 {
     // unfreeze the clock
-    USBCON &= ~(1 << FRZCLK);
+    SI32_USB_A_enable_usb_oscillator( SI32_USB_0 );
+
 
     WAKEUP_INT_CLR();
     WAKEUP_INT_DIS();
@@ -112,7 +110,7 @@ void intp_wakeup()
 /**************************************************************************/
 void intp_eor()
 {
-    EOR_INT_CLR();
+    SI32_USB_A_clear_reset_interrupt( SI32_USB_0 );
     ep_init();
 }
 
@@ -162,14 +160,14 @@ void USB0_IRQHandler( void )
             pcb->pending_data |= (1 << ep_intp_num);
 
             // clear the intps
-            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
         }
         else
         {
             ep_read(ep_intp_num);
 
             // clear the intps
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] )
+            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
         }
         break;
     case IPRDYI: // FIFO has space or transmission completed
@@ -177,6 +175,16 @@ void USB0_IRQHandler( void )
 
         // clear the intps -- not sure if I need to do this?
         break;
+    case SUSI:
+        intp_suspend();
+        break;
+    case RESI:
+        intp_resume();
+        break;
+    case RSTI:
+        intp_eor();
+        break;
+    case SOFI:
     default:
         break;
     }
@@ -191,7 +199,7 @@ void USB0_IRQHandler( void )
     and bus reset.
 */
 /**************************************************************************/
-ISR(USB_GEN_vect)
+/*ISR(USB_GEN_vect)
 {
     U8 ep_num;
 
@@ -227,14 +235,14 @@ ISR(USB_GEN_vect)
     ep_select(ep_num);
 
     sei();
-}
+}*/
 
 /**************************************************************************/
 /*!
     This ISR is only for the AT90USB16 since we need to use an IO as the VBUS sense
 */
 /**************************************************************************/
-ISR(PCINT0_vect)
+/* ISR(PCINT0_vect)
 {
     usb_pcb_t *pcb = usb_pcb_get();
 
@@ -284,4 +292,4 @@ ISR(PCINT0_vect)
         pcb->flags = 0;
     }
     sei();
-}
+} */
