@@ -32,6 +32,12 @@
 *******************************************************************/
 
 #include "freakusb.h"
+#include "hw.h"
+#include "sim3u1xx.h"
+#include "sim3u1xx_Types.h"
+
+
+static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
 
 /**************************************************************************/
 /*!
@@ -120,7 +126,6 @@ void ep_disable(U8 ep_num)
   Configure the endpoint with the specified parameters.
 */
 /**************************************************************************/
-static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
 
 
 void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
@@ -444,10 +449,23 @@ U8 ep_intp_get_num()
   is found, return 0xFF.
 */
 /**************************************************************************/
+// It seems like what this should actually be doing is returning the type of event that has occurred.
+//  case RXSTPI: Received SETUP
+//  case RXOUTI: Received OUT data
+//  case TXINI eady to accept IN data
+//  case STALLEDI: CRC error on OUT in isochronous mode or Stalled packet
+//  case NAKOUTI: NAK OUT sent(
+//  case RWAL: fifo not full or empty
+//  case NAKINI: Set by hardware when a NAK handshake has been sent in response of a IN request from the host.
+//  case FIFOCON: for IN: Set by hardware when the current bank is free, OUT: Set by hardware when a new OUT message is stored in the current bank,
 U8 ep_intp_get_src()
 {
     //U8 i;
+    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
+        return OPRDYI;
 
+    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) == 0 )
+        return IPRDYI;
 
     if( USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
         return;

@@ -37,7 +37,11 @@
 /*******************************************************************/
 
 #include "freakusb.h"
+#include "hw.h"
+#include "sim3u1xx.h"
+#include "sim3u1xx_Types.h"
 
+static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
 
 /**************************************************************************/
 /*!
@@ -118,12 +122,11 @@ void intp_eor()
     are endpoint specific and are mostly used for data transfers and communications.
 */
 /**************************************************************************/
-ISR(USB_COM_vect)
+void USB0_IRQHandler( void )
 {
     U8 ep_intp_num, intp_src, ep_num;
     usb_pcb_t *pcb;
 
-    cli();
 
     // get the pcb for later use
     pcb = usb_pcb_get();
@@ -135,7 +138,6 @@ ISR(USB_COM_vect)
     {
         // no intp number was found. restore the ep number and enable the interrupts
         ep_select(ep_num);
-        sei();
         return;
     }
 
@@ -145,19 +147,12 @@ ISR(USB_COM_vect)
     {   
                 // no intp source was found. restore the ep number and enable the interrupts
         ep_select(ep_num);
-        sei();
         return;
     }
 
     switch (intp_src)
     {
-    case RXSTPI:
-        ep_read(ep_intp_num);
-
-        // clear the intp
-        RX_SETUP_INT_CLR();
-        break;
-    case RXOUTI:
+    case OPRDYI: // Out packet ready to be read
         // mark a flag as having data in the EP bank that needs to be transferred to the fifo. 
         // we need to get out of ISR to transfer data because we need to check that the fifo 
         // has space to put the data. if it's a ctrl endpoint, then we'll just read the data 
@@ -167,22 +162,20 @@ ISR(USB_COM_vect)
             pcb->pending_data |= (1 << ep_intp_num);
 
             // clear the intps
-            RX_OUT_INT_CLR();
+            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
         }
         else
         {
             ep_read(ep_intp_num);
 
             // clear the intps
-            RX_OUT_INT_CLR();
-            FIFOCON_INT_CLR();
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] )
         }
         break;
-    case TXINI:
+    case IPRDYI: // FIFO has space or transmission completed
         ep_write(ep_intp_num);
 
-        // clear the intps
-        TX_IN_INT_CLR();
+        // clear the intps -- not sure if I need to do this?
         break;
     case STALLEDI:
         break;
@@ -198,10 +191,6 @@ ISR(USB_COM_vect)
         break;
     }
 
-    // restore the endpoint number
-    ep_select(ep_num);
-
-    sei();
 }
 
 /**************************************************************************/

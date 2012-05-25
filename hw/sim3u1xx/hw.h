@@ -38,6 +38,8 @@
 #ifndef HW_H
 #define HW_H
 
+#define OPRDYI 0
+
 void hw_init();
 void hw_intp_disable();
 void hw_intp_enable();
