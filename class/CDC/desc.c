@@ -36,7 +36,8 @@
 */
 /*******************************************************************/
 #include "freakusb.h"
-#include <avr/pgmspace.h>
+#include "hw.h"
+//#include <avr/pgmspace.h>
 
 U8 dev_desc[] PROGMEM =
 {

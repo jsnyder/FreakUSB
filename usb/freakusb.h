@@ -108,10 +108,10 @@
 #define EP_7            7
 
 // xfer type
-#define CONTROL         0
-#define ISOCHRONOUS     1
-#define BULK            2
-#define INTP            3
+#define XFER_CONTROL         0
+#define XFER_ISOCHRONOUS     1
+#define XFER_BULK            2
+#define XFER_INTP            3
 
 // dir
 #define DIR_OUT         0

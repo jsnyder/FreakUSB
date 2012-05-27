@@ -42,7 +42,69 @@
 #include "cdc.h"
 
 // set up the iostream here for the printf statement.
-FILE file_str = FDEV_SETUP_STREAM(cdc_demo_putchar, NULL, _FDEV_SETUP_WRITE);
+//FILE file_str = FDEV_SETUP_STREAM(cdc_demo_putchar, NULL, _FDEV_SETUP_WRITE);
+
+
+int _write_r(void *reent, int fd, char *ptr, size_t len)
+{
+    size_t i;
+
+    for (i=0; i<len; i++)
+    {
+        cdc_demo_putchar(ptr[i], NULL);
+    }
+    return len;
+}
+
+void 
+_exit(int n)
+{
+    while(1)
+    {
+        n = n;
+    }
+}
+
+caddr_t
+_sbrk_r(void *reent, size_t incr)
+{
+    extern char end asm ("end"); // Defined by the linker
+    static char *heap_end;
+    char *prev_heap_end;
+
+    if( heap_end == NULL )
+        heap_end = &end;
+    prev_heap_end = heap_end;
+
+    if(( heap_end + incr ) > stack_ptr )
+    {
+        /* Some of the libstdc++-v3 tests rely upon detecting */
+        /* out of memory errors, so do not abort here. */
+        exit(1);
+        return (caddr_t) -1;
+    }
+
+    heap_end += incr;
+    return (caddr_t) prev_heap_end;
+}
+
+int
+_close(int fd)
+{
+    return -1;
+}
+
+int
+_lseek(int fd, int ptr,int dir)
+{
+    return -1;
+}
+
+int
+_read(int fd, void *buffer, unsigned int count)
+{
+    return -1;
+}
 
 // This is the line coding array that sets the baud rate and other modem
 // communications properties. This will be used if you are implementing
@@ -157,9 +219,9 @@ void cdc_rx_handler()
 void cdc_ep_init()
 {
     // setup the endpoints
-    ep_config(EP_1, BULK, DIR_IN, MAX_PACKET_SZ);
-    ep_config(EP_2, INTP, DIR_IN, MAX_PACKET_SZ);
-    ep_config(EP_3, BULK, DIR_OUT, MAX_PACKET_SZ);
+    ep_config(EP_1, XFER_BULK, DIR_IN, MAX_PACKET_SZ);
+    ep_config(EP_2, XFER_INTP, DIR_IN, MAX_PACKET_SZ);
+    ep_config(EP_3, XFER_BULK, DIR_OUT, MAX_PACKET_SZ);
 }
 
 /**************************************************************************/
@@ -216,7 +278,7 @@ void cdc_init()
 {
     // hook the putchar function into the printf stdout filestream. This is needed
     // for printf to work.
-    stdout = &file_str;
+    //stdout = &file_str;
 
     usb_reg_class_drvr(cdc_ep_init, cdc_req_handler, cdc_rx_handler);
 }

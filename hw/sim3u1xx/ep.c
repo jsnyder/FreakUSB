@@ -37,7 +37,7 @@
 #include "sim3u1xx_Types.h"
 
 
-static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
+static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
 
 /**************************************************************************/
 /*!
@@ -48,6 +48,16 @@ static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI3
 void ep_select(U8 ep_num)
 {
     // Don't need this
+}
+
+/**************************************************************************/
+/*!
+  Get the direction of the endpoint.
+*/
+/**************************************************************************/
+U8 ep_dir_get( U8 ep_num )
+{
+    //
 }
 
 /**************************************************************************/
@@ -65,25 +75,15 @@ U8 ep_size_get(U8 ep_num)
 
 /**************************************************************************/
 /*!
-  Get the direction of the endpoint.
-*/
-/**************************************************************************/
-U8 ep_dir_get(U8 ep_num)
-{
-    return (UECFG0X & 0x1);
-}
-
-/**************************************************************************/
-/*!
   Get the endpoint type: BULK, CONTROL, INTERRUPT, ISOCHRONOUS
 */
 /**************************************************************************/
 U8 ep_type_get(U8 ep_num)
 {
     if( ep_num == 0 )
-        return CONTROL;
+        return XFER_CONTROL;
     
-    return BULK;
+    return XFER_BULK;
     // FIXME
 }
 
@@ -142,18 +142,20 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
         {        
             switch( type )
             {
-            case ISOCHRONOUS:
+            case XFER_ISOCHRONOUS:
                 SI32_USBEP_A_enable_out_isochronous_mode( usb_ep[ ep_num - 1 ] );
                 break;
-            case BULK:
-            case INTP:
-                SI32_USBEP_A_select_out_bulk_interrupt_mode( usb_ep[ ep_num - 1 ] );
+            case XFER_BULK:
+            case XFER_INTP:
+                SI32_USBEP_A_enable_out_bulk_interrupt_mode( usb_ep[ ep_num - 1 ] );
                 break;
-            case CONTROL:
+            case XFER_CONTROL:
                 // only for EP0
+                break;
+            default:
+                break;
             }
             SI32_USBEP_A_set_endpoint_direction_out( usb_ep[ ep_num - 1 ] );
-            SI32_USBEP_A_clear_out_data_underrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_stop_out_stall( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_reset_out_data_toggle( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_set_out_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size)*8 );
@@ -164,17 +166,20 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
             SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
             switch( type )
             {
-            case ISOCHRONOUS:
-                SI32_USBEP_A_enable_in_isochronous_mode( usb_ep[ ep_num - 1 ] );
+            case XFER_ISOCHRONOUS:
+                SI32_USBEP_A_select_in_isochronous_mode( usb_ep[ ep_num - 1 ] );
                 break;
-            case BULK:
-            case INTP:
+            case XFER_BULK:
+            case XFER_INTP:
                 SI32_USBEP_A_select_in_bulk_interrupt_mode( usb_ep[ ep_num - 1 ] );
                 SI32_USBEP_A_stop_in_stall( usb_ep[ ep_num - 1 ] );
                 SI32_USBEP_A_reset_in_data_toggle( usb_ep[ ep_num - 1 ] );
                 break;
-            case CONTROL:
-                // only for EP0        
+            case XFER_CONTROL:
+                // only for EP0
+                break;
+            default:
+                break;
             }
             SI32_USBEP_A_set_in_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size)*8 );
         }
@@ -199,7 +204,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
 
     NVIC_EnableIRQ(USB0_IRQn);
 
-    if (ep_num == EP_CTRL)
+    /* if (ep_num == EP_CTRL)
     {
         RX_SETUP_INT_ENB();
         RX_OUT_INT_ENB();
@@ -207,7 +212,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     else if (dir == DIR_OUT)
     {
         RX_OUT_INT_ENB();
-    }
+    }*/
 }
 
 /**************************************************************************/
@@ -266,7 +271,7 @@ void ep_read(U8 ep_num)
             usb_buf_write(ep_num,  SI32_USBEP_A_read_fifo_u8( usb_ep[ ep_num - 1 ] ));
         }
 
-        if ( 0==SI32_USBEP_A_read_data_count(ep))
+        if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] ))
         {
             // Clear overrun out overrun if it has occured
             if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
@@ -313,7 +318,7 @@ void ep_set_stall(U8 ep_num)
         SI32_USB_A_send_stall_ep0( SI32_USB_0 );
     else
     {
-        if( ep_dir_get() == DIR_IN )
+        if( ep_dir_get( ep_num ) == DIR_IN )
         {
             SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_send_in_stall( usb_ep[ ep_num - 1 ] );
@@ -340,7 +345,7 @@ void ep_clear_stall(U8 ep_num)
         SI32_USB_A_clear_stall_sent_ep0( SI32_USB_0 );
     else
     {
-        if( ep_dir_get() == DIR_IN )
+        if( ep_dir_get( ep_num ) == DIR_IN )
         {
 
             SI32_USBEP_A_reset_in_data_toggle( usb_ep[ ep_num - 1 ] );
@@ -382,11 +387,11 @@ void ep_init()
     }
 
     // reset all the endpoints
-    UERST = 0x7F;
-    UERST = 0;
+    //UERST = 0x7F;
+    //UERST = 0;
 
     // configure the control endpoint first since that one is needed for enumeration
-    ep_config(EP_CTRL, CONTROL, DIR_OUT, MAX_PACKET_SZ);
+    ep_config(EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ);
 
     // set the rx setup interrupt to received the enumeration interrupts
     //ep_select(EP_CTRL);

@@ -41,7 +41,7 @@
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
 
-static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
+static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
 
 /**************************************************************************/
 /*!
@@ -51,14 +51,14 @@ static SI32_PBSTD_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI3
 void intp_clear_all()
 {
     U8 i;
-
+    /*
     UDINT  = 0;
 
     for (i=0; i<MAX_EPS; i++)
     {
         ep_select(i);
         UEINTX = 0;
-    }
+    }*/
 }
 
 /**************************************************************************/
@@ -96,11 +96,11 @@ void intp_wakeup()
     SI32_USB_A_enable_usb_oscillator( SI32_USB_0 );
 
 
-    WAKEUP_INT_CLR();
-    WAKEUP_INT_DIS();
+    //WAKEUP_INT_CLR();
+    //WAKEUP_INT_DIS();
 
     // disable the wakeup until next time we go into suspend
-    WAKEUP_INT_DIS();
+    //WAKEUP_INT_DIS();
 }
 
 /**************************************************************************/
@@ -128,9 +128,6 @@ void USB0_IRQHandler( void )
 
     // get the pcb for later use
     pcb = usb_pcb_get();
-
-    // save off the ep number we just had
-    ep_num = UENUM;
 
     if ((ep_intp_num= ep_intp_get_num()) == 0xFF)
     {

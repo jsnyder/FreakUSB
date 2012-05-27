@@ -172,9 +172,9 @@ void hw_init()
     memory from a standard pointer so they need a special function to handle it.
 */
 /**************************************************************************/
-U8 hw_flash_get_byte(u32 *addr)
+U8 hw_flash_get_byte(U32 *addr)
 {
-    return ( u8 )*addr;
+    return ( U8 )*addr;
 }
 
 /**************************************************************************/

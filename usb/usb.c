@@ -37,7 +37,7 @@
 */
 /*******************************************************************/
 #include "freakusb.h"
-#include "at90usb.h"
+//#include "at90usb.h"
 
 static usb_pcb_t pcb;
 

@@ -31,30 +31,24 @@
     Please post support questions to the FreakLabs forum.
 *******************************************************************/
 /*!
-    \file hw.h
-    \ingroup hw_sim3u1xx
+    \file main.h
+    \ingroup cdc_demo
 */
 /*******************************************************************/
-#ifndef HW_H
-#define HW_H
+#ifndef MAIN_H
+#define MAIN_H
 
-enum
+#include "types.h"
+
+#define MAX_MSG_SIZE    30
+
+typedef struct
 {
-    OPRDYI = 0,
-    IPRDYI,
-    SUSI,
-    RESI,
-    RSTI,
-    SOFI
-};
+    char *cmd;
+    void (*func)(U8 argc, char **argv);
+} cmd_t;
 
-#define PROGMEM 
-
-#define PSTR(a) (a)
-
-void hw_init();
-void hw_intp_disable();
-void hw_intp_enable();
-U8 hw_flash_get_byte(U32 *addr);
-
+void rx();
+void cmd_parse(char *cmd);
 #endif
+
