@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include "cdc.h"
 
 #define STDIN_FILENO 0 /* standard input file descriptor */
 #define STDOUT_FILENO 1 /* standard output file descriptor */
@@ -99,7 +100,7 @@ int _write_r(void *reent, int fd, char *ptr, size_t len)
 
 	for (i=0; i<len; i++)
 	{
-        plat_putByte(ptr[i]);
+        cdc_demo_putchar(ptr[i], NULL);
 	}
 	return len;
 }

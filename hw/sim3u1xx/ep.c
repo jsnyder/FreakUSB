@@ -471,7 +471,7 @@ U8 ep_intp_get_src()
         return IPRDYI;
 
     // EP0 / Control Endpoint Sources
-    if( USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
+    if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
         return SUSI;
 
     if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )

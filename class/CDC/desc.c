@@ -225,7 +225,7 @@ U8 *desc_dev_get()
 /**************************************************************************/
 U8 desc_dev_get_len()
 {
-    return pgm_read_byte(dev_desc);
+    return hw_flash_get_byte(dev_desc);
 }
 
 /**************************************************************************/
@@ -247,7 +247,7 @@ U8 *desc_cfg_get()
 /**************************************************************************/
 U8 desc_cfg_get_len()
 {
-    return pgm_read_byte(cfg_desc + 2);
+    return hw_flash_get_byte(cfg_desc + 2);
 }
 
 /**************************************************************************/
@@ -268,7 +268,7 @@ U8 *desc_dev_qual_get()
 /**************************************************************************/
 U8 desc_dev_qual_get_len()
 {
-    return pgm_read_byte(dev_qualifier_desc);
+    return hw_flash_get_byte(dev_qualifier_desc);
 }
 
 /**************************************************************************/
@@ -303,13 +303,13 @@ U8 desc_str_get_len(U8 index)
     switch (index)
     {
     case LANG_DESC_IDX:
-        return pgm_read_byte(lang_str_desc);
+        return hw_flash_get_byte(lang_str_desc);
     case MANUF_DESC_IDX:
-        return pgm_read_byte(vendor_str_desc);
+        return hw_flash_get_byte(vendor_str_desc);
     case PROD_DESC_IDX:
-        return pgm_read_byte(prod_str_desc);
+        return hw_flash_get_byte(prod_str_desc);
     case SERIAL_DESC_IDX:
-        return pgm_read_byte(serial_str_desc);
+        return hw_flash_get_byte(serial_str_desc);
     default:
         return 0;
     }

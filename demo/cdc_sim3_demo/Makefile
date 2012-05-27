@@ -106,7 +106,9 @@ else ifeq ($(MCU), atmega32u4)
 else ifeq ($(MCU), sim3u1xx)
 	SRC += 	../../hw/sim3u1xx/ep.c \
 		../../hw/sim3u1xx/hw.c \
-		../../hw/sim3u1xx/isr.c
+		../../hw/sim3u1xx/isr.c \
+		../../hw/sim3u1xx/si32Hal/sim3u1xx/startup_sim3u1xx_p32.c \
+		syscalls.c
 endif
 	
 
@@ -194,7 +196,11 @@ CFLAGS += -O$(OPT)
 #CFLAGS += -funsigned-bitfields
 #CFLAGS += -fpack-struct
 #CFLAGS += -fshort-enums
+CFLAGS += -ffunction-sections
+CFLAGS += -fdata-sections
+CFLAGS += -fno-strict-aliasing
 CFLAGS += -Wall
+CFLAGS += -Wl,-static
 #CFLAGS += -Wstrict-prototypes
 #CFLAGS += -mshort-calls
 #CFLAGS += -fno-unit-at-a-time
@@ -265,7 +271,7 @@ SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
 SCANF_LIB_FLOAT = -Wl,-u,vfscanf -lscanf_flt
 
 # If this is left blank, then it will use the Standard scanf version.
-SCANF_LIB =
+SCANF_LIB = -lc -lgcc
 #SCANF_LIB = $(SCANF_LIB_MIN)
 #SCANF_LIB = $(SCANF_LIB_FLOAT)
 
@@ -300,6 +306,10 @@ EXTMEMOPTS =
 #    -Map:      create map file
 #    --cref:    add cross reference to  map file
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
+LDFLAGS += -nostartfiles -nostdlib
+LDFLAGS += -T ../../hw/sim3u1xx/sim3u1xx.ld
+LDFLAGS += -Wl,--gc-sections -Wl,--allow-multiple-definition
+LDFLAGS += -Wl,-static
 LDFLAGS += $(EXTMEMOPTS)
 LDFLAGS += $(patsubst %,-L%,$(EXTRALIBDIRS))
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
@@ -453,7 +463,7 @@ endif
 all: begin gccversion sizebefore build sizeafter end
 
 # Change the build target to build a HEX file or a library.
-build: elf hex eep lss sym
+build: elf hex bin
 #build: lib
 
 
@@ -464,6 +474,7 @@ lss: $(TARGET).lss
 sym: $(TARGET).sym
 LIBNAME=lib$(TARGET).a
 lib: $(LIBNAME)
+bin: $(TARGET).bin
 
 
 
@@ -481,7 +492,7 @@ end:
 
 # Display size of file.
 HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
-ELFSIZE = $(SIZE) --mcu=$(MCU) --format=avr $(TARGET).elf
+ELFSIZE = $(SIZE) $(TARGET).elf
 
 sizebefore:
 	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
@@ -561,7 +572,12 @@ extcoff: $(TARGET).elf
 %.hex: %.elf
 	@echo
 	@echo $(MSG_FLASH) $@
-	$(OBJCOPY) -O $(FORMAT) -R .eeprom -R .fuse -R .lock -R .signature $< $@
+	$(OBJCOPY) -O $(FORMAT) $< $@
+
+%.bin: %.elf
+	@echo
+	@echo $(MSG_FLASH) $@
+	$(OBJCOPY) -O binary $< $@
 
 %.eep: %.elf
 	@echo
