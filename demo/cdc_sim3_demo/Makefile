@@ -92,18 +92,21 @@ ifeq ($(MCU), at90usb162)
 	SRC += 	../../hw/at90usbxx2/ep.c \
 		../../hw/at90usbxx2/hw.c \
 		../../hw/at90usbxx2/isr.c
+endif
 
-else ifeq ($(MCU), at90usb1286)
+ifeq ($(MCU), at90usb1286)
 	SRC += 	../../hw/at90usbxx6_7/ep.c \
 		../../hw/at90usbxx6_7/hw.c \
 		../../hw/at90usbxx6_7/isr.c
+endif
 
-else ifeq ($(MCU), atmega32u4)
+ifeq ($(MCU), atmega32u4)
 	SRC += 	../../hw/atmega32u4/ep.c \
 		../../hw/atmega32u4/hw.c \
 		../../hw/atmega32u4/isr.c
+endif
 
-else ifeq ($(MCU), sim3u1xx)
+ifeq ($(MCU), sim3u1xx)
 	SRC += 	../../hw/sim3u1xx/ep.c \
 		../../hw/sim3u1xx/hw.c \
 		../../hw/sim3u1xx/isr.c \
@@ -129,7 +132,7 @@ ASRC =
 # Optimization level, can be [0, 1, 2, 3, s].
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = s
+OPT = 0
 
 
 # Debugging format.
@@ -148,11 +151,14 @@ EXTRAINCDIRS = ../../usb ../../class/cdc
 #check which directories to include depending on part type
 ifeq ($(MCU), at90usb162)
 	EXTRAINCDIRS += ../../hw/at90usbxx2
-else ifeq ($(MCU), at90usb1286)
+endif
+ifeq ($(MCU), at90usb1286)
 	EXTRAINCDIRS += ../../hw/at90usbxx6_7
-else ifeq ($(MCU), atmega32u4)
+endif
+ifeq ($(MCU), atmega32u4)
 	EXTRAINCDIRS += ../../hw/atmega32u4
-else ifeq ($(MCU), sim3u1xx)
+endif
+ifeq ($(MCU), sim3u1xx)
 	EXTRAINCDIRS += ../../hw/sim3u1xx
 	EXTRAINCDIRS += ../../hw/sim3u1xx/si32Hal/CPU
 	EXTRAINCDIRS += ../../hw/sim3u1xx/si32Hal/sim3u1xx
@@ -190,6 +196,7 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 #  -Wa,...:      tell GCC to pass this to the assembler.
 #    -adhlns...: create assembler listing
 #CFLAGS = -g$(DEBUG)
+CFLAGS = -g
 #CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
 #CFLAGS += -funsigned-char

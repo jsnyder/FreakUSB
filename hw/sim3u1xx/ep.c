@@ -57,7 +57,10 @@ void ep_select(U8 ep_num)
 /**************************************************************************/
 U8 ep_dir_get( U8 ep_num )
 {
-    //
+    if( ep_num == 1 || ep_num == 2 )
+        return DIR_IN;
+    else
+        return DIR_OUT;
 }
 
 /**************************************************************************/
@@ -83,7 +86,10 @@ U8 ep_type_get(U8 ep_num)
     if( ep_num == 0 )
         return XFER_CONTROL;
     
-    return XFER_BULK;
+    if( ep_num == 1 || ep_num == 3)
+        return XFER_BULK;
+    else
+        return XFER_INTP;
     // FIXME
 }
 
@@ -188,6 +194,8 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     // Enable endpoints
     switch ( ep_num )
     {
+    case 0:
+        break;
     case 1:
         SI32_USB_A_enable_ep1(SI32_USB_0);
         break;
@@ -202,7 +210,10 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     }
 
 
-    NVIC_EnableIRQ(USB0_IRQn);
+    //SI32_USB_A_reset_module (SI32_USB_0);
+
+
+
 
     /* if (ep_num == EP_CTRL)
     {
@@ -386,12 +397,41 @@ void ep_init()
         ep_cfg_clear(i);
     }
 
+    SI32_USB_A_write_cmint (SI32_USB_0, 0x00000000);
+    SI32_USB_A_write_ioint (SI32_USB_0, 0x00000000);
+    SI32_USB_A_enable_ep0_interrupt (SI32_USB_0);
+
+    // Enable Reset, Resume, Suspend interrupts
+    SI32_USB_A_enable_suspend_interrupt (SI32_USB_0);
+    SI32_USB_A_enable_resume_interrupt (SI32_USB_0);
+    SI32_USB_A_enable_reset_interrupt (SI32_USB_0);
+    SI32_USB_A_enable_start_of_frame_interrupt (SI32_USB_0);
+
+    // Enable Transceiver, fullspeed
+    SI32_USB_A_write_tcontrol (SI32_USB_0, 0x00);
+    SI32_USB_A_select_transceiver_full_speed (SI32_USB_0);
+    SI32_USB_A_enable_transceiver (SI32_USB_0);
+    // _SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
+
+    // Enable clock recovery, single-step mode disabled
+    SI32_USB_A_enable_clock_recovery (SI32_USB_0);
+    SI32_USB_A_select_clock_recovery_mode_full_speed (SI32_USB_0);
+    SI32_USB_A_select_clock_recovery_normal_cal  (SI32_USB_0);
+
     // reset all the endpoints
     //UERST = 0x7F;
     //UERST = 0;
 
     // configure the control endpoint first since that one is needed for enumeration
     ep_config(EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ);
+
+    SI32_USB_0->CMINTEPE.U32 |= (5<<16) ;
+
+    SI32_USB_A_enable_module (SI32_USB_0);
+
+    NVIC_EnableIRQ(USB0_IRQn);
+
+    SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
 
     // set the rx setup interrupt to received the enumeration interrupts
     //ep_select(EP_CTRL);
