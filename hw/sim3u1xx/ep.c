@@ -70,10 +70,16 @@ U8 ep_dir_get( U8 ep_num )
 /**************************************************************************/
 U8 ep_size_get(U8 ep_num)
 {
-    if( ep_dir_get( ep_num ) == DIR_IN )
-        return SI32_USBEP_A_get_in_max_packet_size( usb_ep[ ep_num - 1 ] );
+    if( ep_num == 0 )
+        return 64;
     else
-        return SI32_USBEP_A_get_out_max_packet_size( usb_ep[ ep_num - 1 ] );
+    {
+        if( ep_dir_get( ep_num ) == DIR_IN )
+            return (1 << SI32_USBEP_A_get_in_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
+        else
+            return (1 << SI32_USBEP_A_get_out_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
+    }
+
 }
 
 /**************************************************************************/
@@ -241,8 +247,22 @@ void ep_write(U8 ep_num)
     len = pcb->fifo[ep_num].len;
 
     // make sure that the tx fifo is ready to receive the out data
+    if( ep_num == 0 )
+    {
+        for (i=0; i<len; i++)
+        {
+            // check if we've reached the max packet size for the endpoint
+            if (i == ep_size)
+            {
+                // we've filled the max packet size so break and send the data
+                break;
+            }
 
-    if( ep_num > 0 )
+            SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
+        }
+        SI32_USB_A_set_in_packet_ready_ep0( SI32_USB_0 );
+    }
+    else if( ep_num > 0 )
     {
         for (i=0; i<len; i++)
         {
@@ -273,7 +293,23 @@ void ep_read(U8 ep_num)
     U8 i, len;
     usb_pcb_t *pcb = usb_pcb_get();
 
-    if( ep_num > 0 )
+
+
+    if( ep_num == 0 )
+    {
+        len = SI32_USB_A_read_ep0_count( SI32_USB_0 );
+
+        for (i=0; i<len; i++)
+        {
+            usb_buf_write(ep_num,  SI32_USBEP_A_read_fifo_u8( usb_ep[ ep_num - 1 ] ));
+        }
+
+        if (len > 0)
+        {
+            pcb->flags |= (ep_num == 0) ? (1<<SETUP_DATA_AVAIL) : (1<<RX_DATA_AVAIL);
+        }
+    }
+    else if( ep_num > 0 )
     {
         len = SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] );
 
