@@ -50,7 +50,6 @@ static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI3
 /**************************************************************************/
 void intp_clear_all()
 {
-    U8 i;
     /*
     UDINT  = 0;
 
@@ -122,7 +121,7 @@ void intp_eor()
 /**************************************************************************/
 void USB0_IRQHandler( void )
 {
-    U8 ep_intp_num, intp_src, ep_num;
+    U8 ep_intp_num, intp_src;
     usb_pcb_t *pcb;
 
 
@@ -131,17 +130,12 @@ void USB0_IRQHandler( void )
 
     if ((ep_intp_num= ep_intp_get_num()) == 0xFF)
     {
-        // no intp number was found. restore the ep number and enable the interrupts
-        ep_select(ep_num);
         return;
     }
 
     // select the endpoint number and get the intp src
-    ep_select(ep_intp_num);
     if ((intp_src = ep_intp_get_src()) == 0xFF)
     {   
-                // no intp source was found. restore the ep number and enable the interrupts
-        ep_select(ep_num);
         return;
     }
 
@@ -157,14 +151,15 @@ void USB0_IRQHandler( void )
             pcb->pending_data |= (1 << ep_intp_num);
 
             // clear the intps
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_intp_num - 1 ] );
         }
         else
         {
-            ep_read(ep_intp_num);
+            ep_read( ep_intp_num );
 
             // clear the intps
-            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+            //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+            usb_poll();
         }
         break;
     case IPRDYI: // FIFO has space or transmission completed

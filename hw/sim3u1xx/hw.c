@@ -61,20 +61,14 @@ void mySystemInit()
    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
    // TBD the rest of them
 
-#if si32BuildOption_enable_logging
-   // enable ITM
-   // Enable APB clock to the Port Bank module.
-   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PB0CEN_MASK;
-   // Make the SWO pin (PB1.3) push-pull to enable SWV printf.
-   SI32_PBSTD_1->PBOUTMD_SET = 0x00000008;
-#endif // si32BuildOption_enable_logging
-
   // disable the watchdog.
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 }
 
 void hw_init()
 {
+  usb_pcb_t *pcb = usb_pcb_get();
+  
   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PLL0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_PB0CEN_DISABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART0CEN_DISABLED_U32 |
@@ -163,6 +157,8 @@ void hw_init()
      // Write to EP0CONTROL register.
      0x00000000);
 
+  pcb->connected = true;
+
   NVIC_EnableIRQ (USB0_IRQn);
 }
 
@@ -172,7 +168,7 @@ void hw_init()
     memory from a standard pointer so they need a special function to handle it.
 */
 /**************************************************************************/
-U8 hw_flash_get_byte(U32 *addr)
+U8 hw_flash_get_byte(U8 *addr)
 {
     return ( U8 )*addr;
 }

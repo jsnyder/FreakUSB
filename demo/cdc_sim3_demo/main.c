@@ -159,7 +159,7 @@ int main()
     usb_init();
     hw_init();
 
-        // init the class driver here
+    // init the class driver here
     cdc_init();
 
     // register the rx handler function with the cdc

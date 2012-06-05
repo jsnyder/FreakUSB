@@ -104,7 +104,7 @@ U8 ep_type_get(U8 ep_num)
   Clear the endpoint configuration registers
 */
 /**************************************************************************/
-void ep_cfg_clear()
+void ep_cfg_clear( U8 ep_num )
 {
     //FIXME
 }
@@ -293,20 +293,13 @@ void ep_read(U8 ep_num)
     U8 i, len;
     usb_pcb_t *pcb = usb_pcb_get();
 
-
-
     if( ep_num == 0 )
     {
         len = SI32_USB_A_read_ep0_count( SI32_USB_0 );
 
         for (i=0; i<len; i++)
         {
-            usb_buf_write(ep_num,  SI32_USBEP_A_read_fifo_u8( usb_ep[ ep_num - 1 ] ));
-        }
-
-        if (len > 0)
-        {
-            pcb->flags |= (ep_num == 0) ? (1<<SETUP_DATA_AVAIL) : (1<<RX_DATA_AVAIL);
+            usb_buf_write( ep_num,  SI32_USB_A_read_ep0_fifo_u8( SI32_USB_0 ) );
         }
     }
     else if( ep_num > 0 )
@@ -326,11 +319,10 @@ void ep_read(U8 ep_num)
 
             SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
         }
-
-        if (len > 0)
-        {
-            pcb->flags |= (ep_num == 0) ? (1<<SETUP_DATA_AVAIL) : (1<<RX_DATA_AVAIL);
-        }
+    }
+    if (len > 0)
+    {
+        pcb->flags |= ( ep_num == 0 ) ? ( 1 << SETUP_DATA_AVAIL ) : ( 1 << RX_DATA_AVAIL );
     }
 }
 
@@ -459,15 +451,16 @@ void ep_init()
     //UERST = 0;
 
     // configure the control endpoint first since that one is needed for enumeration
-    ep_config(EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ);
+    ep_config( EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ );
 
     SI32_USB_0->CMINTEPE.U32 |= (5<<16) ;
+    SI32_USB_0->CMINTEPE.U32 |= (15) ;
 
-    SI32_USB_A_enable_module (SI32_USB_0);
+    SI32_USB_A_enable_module( SI32_USB_0 );
 
-    NVIC_EnableIRQ(USB0_IRQn);
+    NVIC_EnableIRQ( USB0_IRQn );
 
-    SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
+    SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
 
     // set the rx setup interrupt to received the enumeration interrupts
     //ep_select(EP_CTRL);
@@ -578,7 +571,7 @@ void ep_drain_fifo(U8 ep)
     else
         byte_cnt = SI32_USBEP_A_read_data_count( usb_ep[ ep - 1 ] );
 
-    if (byte_cnt <= (MAX_BUF_SZ - pcb->fifo[ep].len))
+    if (byte_cnt <= (MAX_BUF_SZ - pcb->fifo[ ep ].len))
     {
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);

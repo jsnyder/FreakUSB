@@ -56,6 +56,6 @@ enum
 void hw_init();
 void hw_intp_disable();
 void hw_intp_enable();
-U8 hw_flash_get_byte(U32 *addr);
+U8 hw_flash_get_byte(U8 *addr);
 
 #endif
