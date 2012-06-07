@@ -124,6 +124,8 @@ void USB0_IRQHandler( void )
     U8 ep_intp_num, intp_src;
     usb_pcb_t *pcb;
 
+    uint32_t usbCommonInterruptMask = SI32_USB_A_read_cmint(SI32_USB_0);
+    uint32_t usbEpInterruptMask = SI32_USB_A_read_ioint(SI32_USB_0);
 
     // get the pcb for later use
     pcb = usb_pcb_get();
@@ -139,6 +141,30 @@ void USB0_IRQHandler( void )
         return;
     }
 
+    // Clear the interrupt sources, then process the interrupts by the mask
+    // so that any subsequent interrupt will immediately reenter the IRQHandler
+    if (usbCommonInterruptMask)
+    {
+    // SI32_USB_A_clear_common_interrupts( SI32_USB_0, bCommon );
+    {
+      volatile uint32_t * CMINT = /* _addr_of */ ((uint32_t *) 0x40018030) ;
+      *CMINT = usbCommonInterruptMask ;
+    }
+    }
+
+    if (usbEpInterruptMask)
+    {
+        // Note:  Clearing the IRQ simply clears the interrupt line.  It does not
+        // clear the interrupt source bit, nor does it relay any info to the hardware
+        // about whether or not a packet is available, or has been consumed from the
+        // fifo.
+        // SI32_USB_A_clear_endpoint_interrupts( SI32_USB_0, usbEpInterruptMask );
+        {
+          volatile uint32_t * IOINT = /* _addr_of */ ((uint32_t *) 0x40018020) ;
+          *IOINT = usbEpInterruptMask;
+        }
+    }
+
     switch (intp_src)
     {
     case OPRDYI: // Out packet ready to be read
@@ -151,15 +177,17 @@ void USB0_IRQHandler( void )
             pcb->pending_data |= (1 << ep_intp_num);
 
             // clear the intps
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_intp_num - 1 ] );
+            //SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_intp_num - 1 ] );
+            //usb_poll();
         }
         else
         {
             ep_read( ep_intp_num );
 
             // clear the intps
-            //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
             usb_poll();
+            //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+
         }
         break;
     case IPRDYI: // FIFO has space or transmission completed
@@ -180,7 +208,7 @@ void USB0_IRQHandler( void )
     default:
         break;
     }
-
+    usb_poll();  // Why do I have to force this?
 }
 
 /**************************************************************************/
