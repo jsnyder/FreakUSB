@@ -81,7 +81,6 @@ void intp_suspend()
 void intp_resume()
 {
     SI32_USB_A_clear_resume_interrupt( SI32_USB_0 );
-
 }
 
 /**************************************************************************/
@@ -93,7 +92,6 @@ void intp_wakeup()
 {
     // unfreeze the clock
     SI32_USB_A_enable_usb_oscillator( SI32_USB_0 );
-
 
     //WAKEUP_INT_CLR();
     //WAKEUP_INT_DIS();
@@ -175,19 +173,10 @@ void USB0_IRQHandler( void )
         if (ep_intp_num != EP_CTRL)
         {
             pcb->pending_data |= (1 << ep_intp_num);
-
-            // clear the intps
-            //SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_intp_num - 1 ] );
-            //usb_poll();
         }
         else
         {
             ep_read( ep_intp_num );
-
-            // clear the intps
-            usb_poll();
-            //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
-
         }
         break;
     case IPRDYI: // FIFO has space or transmission completed

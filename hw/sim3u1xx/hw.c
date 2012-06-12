@@ -112,50 +112,43 @@ void hw_init()
   /* Initialize USB Module */
   /* --------------------- */
   SI32_USB_A_enable_usb_oscillator(SI32_USB_0);
+  //SI32_USB_A_verify_clock_is_running(SI32_USB_0);
+  SI32_USB_A_select_usb_clock_48mhz (SI32_USB_0);
 
   // Perform asynchronous reset of the USB module
   SI32_USB_A_reset_module(SI32_USB_0);
   // Wait for reset to complete
   while (SI32_USB_0->CLKSEL.RESET == SI32_USB_A_CLKSEL_RESET_SET_VALUE);
 
-// These defines control initialization for USB
-#define force_low_speed false
-#define start_attached  true
-#define start_enabled   true
-  SI32_USB_A_initialize(
-     SI32_USB_0,
-     // Write to FADDR register.
-     0x00000000,
-     // Write to POWER register.
-     //0x00000011,
-     0x00000001 |
-     (!start_enabled << SI32_USB_A_POWER_USBINH_SHIFT),
-     // Write to IOINT register.
-     0x001E001F,
-     // Write to CMINT register.
-     0x0000000F,
-     // Write to IOINTE register.
-     0x001E001F,
-     // Write to CMINTEPE register.
-     0x001F000F,
-     // Write to CRCONTROL register.
-     0x00000080 | (force_low_speed << SI32_USB_A_CRCONTROL_LSCRMD_SHIFT),
-     // Write to TCONTROL register.
-     0x00000040 |
-     (!force_low_speed << SI32_USB_A_TCONTROL_SSEL_SHIFT) |
-     (start_attached << SI32_USB_A_TCONTROL_PUEN_SHIFT),
-     // Write to CLKSEL register.
-#if (force_low_speed == false)
-     0x00000000, // full-speed
-#else
-     0x00000030, // low-speed
-#endif // (force_low_speed == false)
-     // Write to OSCCONTROL register.
-     0x00000080,
-     // Write to DMACONTROL register.
-     0x00000000,
-     // Write to EP0CONTROL register.
-     0x00000000);
+  SI32_USB_A_reset_module (SI32_USB_0);
+
+  SI32_USB_A_write_cmint (SI32_USB_0, 0x00000000);
+  SI32_USB_A_write_ioint (SI32_USB_0, 0x00000000);
+  SI32_USB_A_enable_ep0_interrupt (SI32_USB_0);
+
+  // Enable Reset, Resume, Suspend interrupts
+  SI32_USB_A_enable_suspend_interrupt (SI32_USB_0);
+  SI32_USB_A_enable_resume_interrupt (SI32_USB_0);
+  SI32_USB_A_enable_reset_interrupt (SI32_USB_0);
+  SI32_USB_A_enable_start_of_frame_interrupt (SI32_USB_0);
+
+  // Enable Transceiver, fullspeed
+  SI32_USB_A_write_tcontrol (SI32_USB_0, 0x00);
+  SI32_USB_A_select_transceiver_full_speed (SI32_USB_0);
+  SI32_USB_A_enable_transceiver (SI32_USB_0);
+  // _SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
+
+  // Enable clock recovery, single-step mode disabled
+  SI32_USB_A_enable_clock_recovery (SI32_USB_0);
+  SI32_USB_A_select_clock_recovery_mode_full_speed (SI32_USB_0);
+  SI32_USB_A_select_clock_recovery_normal_cal  (SI32_USB_0);
+
+  SI32_USB_0->CMINTEPE.U32 |= (5<<16) ;
+  SI32_USB_0->CMINTEPE.U32 |= (15) ;
+
+  SI32_USB_A_enable_module( SI32_USB_0 );
+
+  SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
 
   pcb->connected = true;
 

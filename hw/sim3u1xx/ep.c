@@ -243,7 +243,7 @@ void ep_write(U8 ep_num)
     U8 i, ep_size, len;
     usb_pcb_t *pcb = usb_pcb_get();
 
-    ep_size = ep_size_get(ep_num);
+    ep_size = ep_size_get( ep_num );
     len = pcb->fifo[ep_num].len;
 
     // make sure that the tx fifo is ready to receive the out data
@@ -255,11 +255,13 @@ void ep_write(U8 ep_num)
             if (i == ep_size)
             {
                 // we've filled the max packet size so break and send the data
+                SI32_USB_A_set_data_end_ep0(SI32_USB_0);
                 break;
             }
 
             SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
         }
+
         SI32_USB_A_set_in_packet_ready_ep0( SI32_USB_0 );
     }
     else if( ep_num > 0 )
@@ -418,33 +420,15 @@ void ep_init()
 {
     U8 i;
 
+    // Initialize USB clock to use 48Mhz Oscillator
+    //SI32_USB_A_verify_clock_is_running(SI32_USB_0);
+
     // disable and clear all endpoints
     for (i=0; i<MAX_EPS; i++)
     {
         ep_disable(i);
         ep_cfg_clear(i);
     }
-
-    SI32_USB_A_write_cmint (SI32_USB_0, 0x00000000);
-    SI32_USB_A_write_ioint (SI32_USB_0, 0x00000000);
-    SI32_USB_A_enable_ep0_interrupt (SI32_USB_0);
-
-    // Enable Reset, Resume, Suspend interrupts
-    SI32_USB_A_enable_suspend_interrupt (SI32_USB_0);
-    SI32_USB_A_enable_resume_interrupt (SI32_USB_0);
-    SI32_USB_A_enable_reset_interrupt (SI32_USB_0);
-    SI32_USB_A_enable_start_of_frame_interrupt (SI32_USB_0);
-
-    // Enable Transceiver, fullspeed
-    SI32_USB_A_write_tcontrol (SI32_USB_0, 0x00);
-    SI32_USB_A_select_transceiver_full_speed (SI32_USB_0);
-    SI32_USB_A_enable_transceiver (SI32_USB_0);
-    // _SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
-
-    // Enable clock recovery, single-step mode disabled
-    SI32_USB_A_enable_clock_recovery (SI32_USB_0);
-    SI32_USB_A_select_clock_recovery_mode_full_speed (SI32_USB_0);
-    SI32_USB_A_select_clock_recovery_normal_cal  (SI32_USB_0);
 
     // reset all the endpoints
     //UERST = 0x7F;
@@ -453,14 +437,7 @@ void ep_init()
     // configure the control endpoint first since that one is needed for enumeration
     ep_config( EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ );
 
-    SI32_USB_0->CMINTEPE.U32 |= (5<<16) ;
-    SI32_USB_0->CMINTEPE.U32 |= (15) ;
-
-    SI32_USB_A_enable_module( SI32_USB_0 );
-
-    NVIC_EnableIRQ( USB0_IRQn );
-
-    SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
+    //NVIC_EnableIRQ( USB0_IRQn );
 
     // set the rx setup interrupt to received the enumeration interrupts
     //ep_select(EP_CTRL);
@@ -535,12 +512,14 @@ U8 ep_intp_get_src()
 {
     U8 ep_num = ep_intp_get_num();
 
-    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
-        return OPRDYI;
-
     if( ep_num > 0 )
     {
         if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_num - 1 ] ) )
+            return OPRDYI;
+    }
+    else
+    {
+        if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
             return OPRDYI;
     }
 
@@ -557,10 +536,18 @@ U8 ep_intp_get_src()
     if( SI32_USB_A_is_start_of_frame_interrupt_pending( SI32_USB_0 ) )
         return SOFI;
 
-    if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
-        return IPRDYI;
+    if( ep_num > 0 )
+    {
+        if( usb_ep[ ep_num - 1 ]->EPCONTROL.IPRDYI == 0 )
+            return IPRDYI;
+    }
+    else
+    {
+        if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
+            return IPRDYI;
+    }
 
-    return OPRDYI;
+    return 0xFF;
 }
 
 /**************************************************************************/
@@ -584,7 +571,10 @@ void ep_drain_fifo(U8 ep)
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);
         if( ep == 0 )
+        {
+            SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
             SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+        }
         else
             SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
     }   
