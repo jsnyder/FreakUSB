@@ -122,6 +122,7 @@ void USB0_IRQHandler( void )
     U8 ep_intp_num, intp_src;
     usb_pcb_t *pcb;
 
+    uint32_t ControlReg = SI32_USB_A_read_ep0control(SI32_USB_0);
     uint32_t usbCommonInterruptMask = SI32_USB_A_read_cmint(SI32_USB_0);
     uint32_t usbEpInterruptMask = SI32_USB_A_read_ioint(SI32_USB_0);
 
@@ -144,10 +145,10 @@ void USB0_IRQHandler( void )
     if (usbCommonInterruptMask)
     {
     // SI32_USB_A_clear_common_interrupts( SI32_USB_0, bCommon );
-    {
-      volatile uint32_t * CMINT = /* _addr_of */ ((uint32_t *) 0x40018030) ;
-      *CMINT = usbCommonInterruptMask ;
-    }
+        {
+            volatile uint32_t * CMINT = /* _addr_of */ ((uint32_t *) 0x40018030) ;
+            *CMINT = usbCommonInterruptMask ;
+        }
     }
 
     if (usbEpInterruptMask)
@@ -163,8 +164,21 @@ void USB0_IRQHandler( void )
         }
     }
 
+
+    if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
+        ep_clear_stall(0);
+
+    if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
+    {
+        SI32_USB_A_clear_setup_end_early_ep0(SI32_USB_0);
+    }
+
     switch (intp_src)
     {
+    case IPRDYI: // FIFO has space or transmission completed
+        ep_write(ep_intp_num);
+        if (!(ControlReg & (~SI32_USB_A_EP0CONTROL_IPRDYI_MASK) ) )
+            break;
     case OPRDYI: // Out packet ready to be read
         // mark a flag as having data in the EP bank that needs to be transferred to the fifo. 
         // we need to get out of ISR to transfer data because we need to check that the fifo 
@@ -179,20 +193,15 @@ void USB0_IRQHandler( void )
             ep_read( ep_intp_num );
         }
         break;
-    case IPRDYI: // FIFO has space or transmission completed
-        ep_write(ep_intp_num);
-
-        // clear the intps -- not sure if I need to do this?
-        break;
     case SUSI:
-        intp_suspend();
-        break;
+        // intp_suspend();
+        // break;
     case RESI:
-        intp_resume();
-        break;
+        // intp_resume();
+        // break;
     case RSTI:
-        intp_eor();
-        break;
+        //intp_eor();
+        //break;
     case SOFI:
     default:
         break;

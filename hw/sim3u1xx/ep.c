@@ -168,9 +168,10 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
                 break;
             }
             SI32_USBEP_A_set_endpoint_direction_out( usb_ep[ ep_num - 1 ] );
+            SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_stop_out_stall( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_reset_out_data_toggle( usb_ep[ ep_num - 1 ] );
-            SI32_USBEP_A_set_out_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size)*8 );
+            SI32_USBEP_A_set_out_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size) );
         }
         else
         {
@@ -193,7 +194,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
             default:
                 break;
             }
-            SI32_USBEP_A_set_in_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size)*8 );
+            SI32_USBEP_A_set_in_max_packet_size(usb_ep[ ep_num - 1 ], (1 << size) );
         }
     }
 
@@ -238,10 +239,14 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
   of that particular endpoint to the host.
 */
 /**************************************************************************/
+
+U8 ongoing_write = 0;
 void ep_write(U8 ep_num)
 {
     U8 i, ep_size, len;
     usb_pcb_t *pcb = usb_pcb_get();
+
+    uint32_t ControlReg = SI32_USB_A_read_ep0control(SI32_USB_0);
 
     ep_size = ep_size_get( ep_num );
     len = pcb->fifo[ep_num].len;
@@ -249,20 +254,28 @@ void ep_write(U8 ep_num)
     // make sure that the tx fifo is ready to receive the out data
     if( ep_num == 0 )
     {
+        if( ongoing_write == 0)
+            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+
         for (i=0; i<len; i++)
         {
-            // check if we've reached the max packet size for the endpoint
-            if (i == ep_size)
+
+            if ( i == ep_size )
             {
                 // we've filled the max packet size so break and send the data
-                SI32_USB_A_set_data_end_ep0(SI32_USB_0);
-                break;
+                ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
+                SI32_USB_0->EP0CONTROL.U32 = ControlReg;
+                ongoing_write = 1;
+                return;
             }
 
             SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
         }
+        ongoing_write = 0;
+        ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
+        ControlReg |= SI32_USB_A_EP0CONTROL_DEND_MASK;
+        SI32_USB_0->EP0CONTROL.U32 = ControlReg;
 
-        SI32_USB_A_set_in_packet_ready_ep0( SI32_USB_0 );
     }
     else if( ep_num > 0 )
     {
@@ -339,7 +352,6 @@ void ep_send_zlp(U8 ep_num)
     if( ep_num == 0 )
     {
         SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
-        // Service Setup Packet
         SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
     }
 }

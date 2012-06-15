@@ -92,7 +92,7 @@
 // config
 #define FLASHMEM            PROGMEM     ///< AVR Specific for storing data in flash
 #define MAX_RX_ENTRIES      5
-#define MAX_EPS             7           ///< AVR Specific for AT90USB USB controller
+#define MAX_EPS             4           ///< AVR Specific for AT90USB USB controller
 #define POWER_SRC           BUS_POWERED
 #define MAX_REQUEST_SIZE    32
 #define CTRL_IN_REQ_SZ      8

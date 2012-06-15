@@ -130,7 +130,7 @@ void hw_init()
   SI32_USB_A_enable_suspend_interrupt (SI32_USB_0);
   SI32_USB_A_enable_resume_interrupt (SI32_USB_0);
   SI32_USB_A_enable_reset_interrupt (SI32_USB_0);
-  SI32_USB_A_enable_start_of_frame_interrupt (SI32_USB_0);
+  //SI32_USB_A_enable_start_of_frame_interrupt (SI32_USB_0);
 
   // Enable Transceiver, fullspeed
   SI32_USB_A_write_tcontrol (SI32_USB_0, 0x00);
@@ -148,11 +148,10 @@ void hw_init()
 
   SI32_USB_A_enable_module( SI32_USB_0 );
 
-  SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
+  NVIC_EnableIRQ (USB0_IRQn);
 
   pcb->connected = true;
-
-  NVIC_EnableIRQ (USB0_IRQn);
+  SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
 }
 
 /**************************************************************************/
