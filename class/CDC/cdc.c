@@ -99,7 +99,7 @@ void cdc_req_handler(req_t *req)
             {
                 // keep the nop for a place to set a breakpoint on and to make it obvious we're
                 // waiting for something.
-                //asm("nop");
+                asm("nop");
             }
 
             // clear the setup flag if needed

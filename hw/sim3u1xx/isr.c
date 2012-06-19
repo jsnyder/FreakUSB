@@ -134,12 +134,6 @@ void USB0_IRQHandler( void )
         return;
     }
 
-    // select the endpoint number and get the intp src
-    if ((intp_src = ep_intp_get_src()) == 0xFF)
-    {   
-        return;
-    }
-
     // Clear the interrupt sources, then process the interrupts by the mask
     // so that any subsequent interrupt will immediately reenter the IRQHandler
     if (usbCommonInterruptMask)
@@ -166,47 +160,29 @@ void USB0_IRQHandler( void )
 
 
     if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
-        ep_clear_stall(0);
+        ep_clear_stall( ep_intp_num );
 
     if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
-    {
-        SI32_USB_A_clear_setup_end_early_ep0(SI32_USB_0);
-    }
+        SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
 
-    switch (intp_src)
+
+    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) || 
+        SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ) )
     {
-    case IPRDYI: // FIFO has space or transmission completed
-        ep_write(ep_intp_num);
-        if (!(ControlReg & (~SI32_USB_A_EP0CONTROL_IPRDYI_MASK) ) )
-            break;
-    case OPRDYI: // Out packet ready to be read
-        // mark a flag as having data in the EP bank that needs to be transferred to the fifo. 
-        // we need to get out of ISR to transfer data because we need to check that the fifo 
-        // has space to put the data. if it's a ctrl endpoint, then we'll just read the data 
-        // directly.
-        if (ep_intp_num != EP_CTRL)
-        {
-            pcb->pending_data |= (1 << ep_intp_num);
-        }
+        if( ep_intp_num > 0 )
+            pcb->pending_data |= ( 1 << ep_intp_num );
         else
-        {
             ep_read( ep_intp_num );
-        }
-        break;
-    case SUSI:
-        // intp_suspend();
-        // break;
-    case RESI:
-        // intp_resume();
-        // break;
-    case RSTI:
-        //intp_eor();
-        //break;
-    case SOFI:
-    default:
-        break;
     }
-    usb_poll();  // Why do I have to force this?
+    else if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
+        intp_suspend();
+    else if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
+        intp_resume();
+    else if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
+        intp_eor();
+    else if( ( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 ) ||
+            ( SI32_USB_0->EP0CONTROL.IPRDYI == 0 ) )
+        ep_write( ep_intp_num );
 }
 
 /**************************************************************************/

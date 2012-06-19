@@ -251,49 +251,59 @@ void ep_write(U8 ep_num)
     ep_size = ep_size_get( ep_num );
     len = pcb->fifo[ep_num].len;
 
-    // make sure that the tx fifo is ready to receive the out data
-    if( ep_num == 0 )
+    if( len > 0 )
     {
-        if( ongoing_write == 0)
-            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
-
-        for (i=0; i<len; i++)
+        if( ep_num == 0 )
         {
-
-            if ( i == ep_size )
-            {
-                // we've filled the max packet size so break and send the data
-                ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
-                SI32_USB_0->EP0CONTROL.U32 = ControlReg;
-                ongoing_write = 1;
-                return;
-            }
-
-            SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
+            while( SI32_USB_0->EP0CONTROL.IPRDYI != 0 );
         }
-        ongoing_write = 0;
-        ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
-        ControlReg |= SI32_USB_A_EP0CONTROL_DEND_MASK;
-        SI32_USB_0->EP0CONTROL.U32 = ControlReg;
-
-    }
-    else if( ep_num > 0 )
-    {
-        for (i=0; i<len; i++)
+        else
         {
-            // check if we've reached the max packet size for the endpoint
-            if (i == ep_size)
-            {
-                // we've filled the max packet size so break and send the data
-                break;
-            }
-
-            SI32_USBEP_A_write_fifo_u8( usb_ep[ ep_num - 1 ], usb_buf_read( ep_num ) );
+            while( usb_ep[ ep_num - 1 ]->EPCONTROL.IPRDYI != 0 );
         }
 
-        // clearing these two will send the data out
-        SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
-        SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
+        if( ep_num == 0 )
+        {
+            //if( ( ongoing_write & ( 1 < ep_num ) ) == 0)
+                //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+
+            for (i=0; i<len; i++)
+            {
+                if ( i == ep_size )
+                {
+                    // we've filled the max packet size so break and send the data
+                    ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
+                    SI32_USB_0->EP0CONTROL.U32 = ControlReg;
+                    ongoing_write |= ( 1 < ep_num );
+                    return;
+                }
+
+                SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
+            }
+            ongoing_write = 0;
+            ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
+            //ControlReg |= SI32_USB_A_EP0CONTROL_DEND_MASK;
+            SI32_USB_0->EP0CONTROL.U32 = ControlReg;
+
+        }
+        else if( ep_num > 0 )
+        {
+            for (i=0; i<len; i++)
+            {
+                // check if we've reached the max packet size for the endpoint
+                if (i == ep_size)
+                {
+                    // we've filled the max packet size so break and send the data
+                    break;
+                }
+
+                SI32_USBEP_A_write_fifo_u8( usb_ep[ ep_num - 1 ], usb_buf_read( ep_num ) );
+            }
+
+            // clearing these two will send the data out
+            SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
+            SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
+        }
     }
 }
 
@@ -315,6 +325,12 @@ void ep_read(U8 ep_num)
         for (i=0; i<len; i++)
         {
             usb_buf_write( ep_num,  SI32_USB_A_read_ep0_fifo_u8( SI32_USB_0 ) );
+        }
+
+        if( 0==SI32_USB_A_read_ep0_count( SI32_USB_0 ) )
+        {
+            //SI32_USB_A_set_data_end_ep0(SI32_USB_0);
+            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
         }
     }
     else if( ep_num > 0 )
@@ -582,12 +598,5 @@ void ep_drain_fifo(U8 ep)
     {
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);
-        if( ep == 0 )
-        {
-            SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
-            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
-        }
-        else
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
     }   
 }

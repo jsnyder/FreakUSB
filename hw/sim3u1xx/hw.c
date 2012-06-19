@@ -51,6 +51,27 @@
 */
 /**************************************************************************/
 
+#define SI32_USB_A_CLKSEL_TEST_MASK 0x00000080
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+bool SI32_USB_A_verify_clock_is_running(SI32_USB_A_Type * usb)
+{
+  usb->CLKSEL.U32 |= SI32_USB_A_CLKSEL_TEST_MASK;
+  int loop=100;
+
+  while( (usb->CLKSEL.U32 & SI32_USB_A_CLKSEL_TEST_MASK) )
+  {
+    if( 0==loop--)
+    {
+      //printf("USB Clock Not Running! clksel = %02x\n", usb->CLKSEL.U32);
+      return false;
+    }
+  }
+  //printf("USB Clock is running.  clksel = %02x\n", usb->CLKSEL.U32);
+  return true;
+}
+
 void mySystemInit()
 {
    // oscillators
@@ -112,15 +133,13 @@ void hw_init()
   /* Initialize USB Module */
   /* --------------------- */
   SI32_USB_A_enable_usb_oscillator(SI32_USB_0);
-  //SI32_USB_A_verify_clock_is_running(SI32_USB_0);
+  SI32_USB_A_verify_clock_is_running(SI32_USB_0);
   SI32_USB_A_select_usb_clock_48mhz (SI32_USB_0);
 
   // Perform asynchronous reset of the USB module
   SI32_USB_A_reset_module(SI32_USB_0);
   // Wait for reset to complete
   while (SI32_USB_0->CLKSEL.RESET == SI32_USB_A_CLKSEL_RESET_SET_VALUE);
-
-  SI32_USB_A_reset_module (SI32_USB_0);
 
   SI32_USB_A_write_cmint (SI32_USB_0, 0x00000000);
   SI32_USB_A_write_ioint (SI32_USB_0, 0x00000000);
@@ -137,21 +156,21 @@ void hw_init()
   SI32_USB_A_select_transceiver_full_speed (SI32_USB_0);
   SI32_USB_A_enable_transceiver (SI32_USB_0);
   // _SI32_USB_A_enable_internal_pull_up (SI32_USB_0);
+  SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
 
   // Enable clock recovery, single-step mode disabled
   SI32_USB_A_enable_clock_recovery (SI32_USB_0);
   SI32_USB_A_select_clock_recovery_mode_full_speed (SI32_USB_0);
   SI32_USB_A_select_clock_recovery_normal_cal  (SI32_USB_0);
 
-  SI32_USB_0->CMINTEPE.U32 |= (5<<16) ;
-  SI32_USB_0->CMINTEPE.U32 |= (15) ;
-
-  SI32_USB_A_enable_module( SI32_USB_0 );
+  SI32_USB_0->CMINTEPE.U32 |= (1<<16) ;
+  SI32_USB_0->CMINTEPE.U32 |= 7;
 
   NVIC_EnableIRQ (USB0_IRQn);
 
+  SI32_USB_A_enable_module( SI32_USB_0 );
+
   pcb->connected = true;
-  SI32_USB_A_enable_internal_pull_up( SI32_USB_0 );
 }
 
 /**************************************************************************/
