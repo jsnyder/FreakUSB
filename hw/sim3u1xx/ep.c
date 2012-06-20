@@ -253,15 +253,7 @@ void ep_write(U8 ep_num)
 
     if( len > 0 )
     {
-        if( ep_num == 0 )
-        {
-            while( SI32_USB_0->EP0CONTROL.IPRDYI != 0 );
-        }
-        else
-        {
-            while( usb_ep[ ep_num - 1 ]->EPCONTROL.IPRDYI != 0 );
-        }
-
+        
         if( ep_num == 0 )
         {
             //if( ( ongoing_write & ( 1 < ep_num ) ) == 0)
@@ -272,8 +264,8 @@ void ep_write(U8 ep_num)
                 if ( i == ep_size )
                 {
                     // we've filled the max packet size so break and send the data
-                    ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
-                    SI32_USB_0->EP0CONTROL.U32 = ControlReg;
+                    //ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
+                    //SI32_USB_0->EP0CONTROL.U32 = ControlReg;
                     ongoing_write |= ( 1 < ep_num );
                     return;
                 }
@@ -330,7 +322,7 @@ void ep_read(U8 ep_num)
         if( 0==SI32_USB_A_read_ep0_count( SI32_USB_0 ) )
         {
             //SI32_USB_A_set_data_end_ep0(SI32_USB_0);
-            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+            //SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
         }
     }
     else if( ep_num > 0 )
@@ -598,5 +590,8 @@ void ep_drain_fifo(U8 ep)
     {
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);
+
+        SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
+        SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
     }   
 }

@@ -61,9 +61,9 @@
 
 // define the max buffer size. the max fifo size for each endpoint will
 // be automatically configured based on this.
-#define MAX_BUF_SZ_16       0
+#define MAX_BUF_SZ_16       1
 #define MAX_BUF_SZ_32       0
-#define MAX_BUF_SZ_64       1
+#define MAX_BUF_SZ_64       0
 #define MAX_BUF_SZ_128      0
 
 #if (MAX_BUF_SZ_16 == 1)

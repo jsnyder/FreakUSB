@@ -199,6 +199,7 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 CFLAGS = -g
 #CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
+CFLAGS += -D__NEWLIB__
 #CFLAGS += -funsigned-char
 #CFLAGS += -funsigned-bitfields
 #CFLAGS += -fpack-struct
