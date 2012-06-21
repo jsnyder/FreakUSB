@@ -166,23 +166,63 @@ void USB0_IRQHandler( void )
         SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
 
 
-    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) || 
-        SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ) )
+    if( ep_intp_num > 0 )
     {
-        if( ep_intp_num > 0 )
-            pcb->pending_data |= ( 1 << ep_intp_num );
-        else
+        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+            SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+            SI32_USBEP_A_clear_out_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+        if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
+        {
             ep_read( ep_intp_num );
+            //pcb->pending_data |= ( 1 << ep_intp_num );
+            return;
+        }
+
     }
-    else if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
+    else
+    {
+        if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
+        {
+            ep_read( ep_intp_num );
+            return;
+        }
+    }
+
+    if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
+    {
         intp_suspend();
-    else if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
+        return;
+    }
+
+    if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
+    {
         intp_resume();
-    else if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
+        return;
+    }
+    if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
+    {
         intp_eor();
-    else if( ( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 ) ||
-            ( SI32_USB_0->EP0CONTROL.IPRDYI == 0 ) )
-        ep_write( ep_intp_num );
+        return;
+    }
+    if( ep_intp_num > 0 )
+    {
+        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
+        {
+            ep_write( ep_intp_num );
+            return;
+        }
+    }
+    else
+    {
+        if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
+        {
+            ep_write( ep_intp_num );
+            return;
+        }
+    }
 }
 
 /**************************************************************************/

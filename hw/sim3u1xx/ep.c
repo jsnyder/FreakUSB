@@ -35,6 +35,7 @@
 #include "hw.h"
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
+#include "cdc.h"
 
 
 static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
@@ -75,9 +76,9 @@ U8 ep_size_get(U8 ep_num)
     else
     {
         if( ep_dir_get( ep_num ) == DIR_IN )
-            return (1 << SI32_USBEP_A_get_in_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
+            return (SI32_USBEP_A_get_in_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
         else
-            return (1 << SI32_USBEP_A_get_out_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
+            return (SI32_USBEP_A_get_out_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
     }
 
 }
@@ -201,19 +202,17 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     // Enable endpoints
     switch ( ep_num )
     {
-    case 0:
-        break;
     case 1:
-        SI32_USB_A_enable_ep1(SI32_USB_0);
+        SI32_USB_A_enable_ep1( SI32_USB_0 );
         break;
     case 2:
-        SI32_USB_A_enable_ep2(SI32_USB_0);
+        SI32_USB_A_enable_ep2( SI32_USB_0 );
         break;
     case 3:
-        SI32_USB_A_enable_ep3(SI32_USB_0);
+        SI32_USB_A_enable_ep3( SI32_USB_0 );
         break;
     case 4:
-        SI32_USB_A_enable_ep4(SI32_USB_0);
+        SI32_USB_A_enable_ep4( SI32_USB_0 );
     }
 
 
@@ -253,9 +252,11 @@ void ep_write(U8 ep_num)
 
     if( len > 0 )
     {
-        
         if( ep_num == 0 )
         {
+            // Make sure we're free to write
+            while( SI32_USB_A_read_ep0control(SI32_USB_0) & SI32_USB_A_EP0CONTROL_IPRDYI_MASK );
+
             //if( ( ongoing_write & ( 1 < ep_num ) ) == 0)
                 //SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
 
@@ -278,15 +279,18 @@ void ep_write(U8 ep_num)
             SI32_USB_0->EP0CONTROL.U32 = ControlReg;
 
         }
-        else if( ep_num > 0 )
+        else
         {
+            // Make sure we're free to write
+            while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
+
             for (i=0; i<len; i++)
             {
                 // check if we've reached the max packet size for the endpoint
-                if (i == ep_size)
+                if ( i == ep_size )
                 {
                     // we've filled the max packet size so break and send the data
-                    break;
+                    return;
                 }
 
                 SI32_USBEP_A_write_fifo_u8( usb_ep[ ep_num - 1 ], usb_buf_read( ep_num ) );
@@ -337,16 +341,17 @@ void ep_read(U8 ep_num)
         if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] ))
         {
             // Clear overrun out overrun if it has occured
-            if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
-                SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
+            // if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
+            //     SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
 
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
+            // SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
         }
     }
     if (len > 0)
     {
         pcb->flags |= ( ep_num == 0 ) ? ( 1 << SETUP_DATA_AVAIL ) : ( 1 << RX_DATA_AVAIL );
     }
+    //cdc_demo_putchar("a", NULL);
 }
 
 /**************************************************************************/
@@ -591,7 +596,18 @@ void ep_drain_fifo(U8 ep)
         ep_read(ep);
         pcb->pending_data &= ~(1<<ep);
 
-        SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
-        SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+        if( ep == 0 )
+        {
+            SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
+            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+        }
+        else
+        {
+            if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep - 1 ] ) )
+                SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep - 1 ] );
+
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
+        }
+
     }   
 }

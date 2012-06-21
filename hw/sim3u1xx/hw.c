@@ -72,18 +72,69 @@ bool SI32_USB_A_verify_clock_is_running(SI32_USB_A_Type * usb)
   return true;
 }
 
+// void hard_fault_handler_c(unsigned int * hardfault_args)
+// {
+//   unsigned int stacked_r0;
+//   unsigned int stacked_r1;
+//   unsigned int stacked_r2;
+//   unsigned int stacked_r3;
+//   unsigned int stacked_r12;
+//   unsigned int stacked_lr;
+//   unsigned int stacked_pc;
+//   unsigned int stacked_psr;
+
+//   stacked_r0 = ((unsigned long) hardfault_args[0]);
+//   stacked_r1 = ((unsigned long) hardfault_args[1]);
+//   stacked_r2 = ((unsigned long) hardfault_args[2]);
+//   stacked_r3 = ((unsigned long) hardfault_args[3]);
+
+//   stacked_r12 = ((unsigned long) hardfault_args[4]);
+//   stacked_lr = ((unsigned long) hardfault_args[5]);
+//   stacked_pc = ((unsigned long) hardfault_args[6]);
+//   stacked_psr = ((unsigned long) hardfault_args[7]);
+
+//   // printf ("[Hard fault handler]\n");
+//   // printf ("R0 = %x\n", stacked_r0);
+//   // printf ("R1 = %x\n", stacked_r1);
+//   // printf ("R2 = %x\n", stacked_r2);
+//   // printf ("R3 = %x\n", stacked_r3);
+//   // printf ("R12 = %x\n", stacked_r12);
+//   // printf ("LR = %x\n", stacked_lr);
+//   // printf ("PC = %x\n", stacked_pc);
+//   // printf ("PSR = %x\n", stacked_psr);
+//   // printf ("BFAR = %x\n", (*((volatile unsigned  *)(0xE000ED38))));
+//   // printf ("CFSR = %x\n", (*((volatile unsigned  *)(0xE000ED28))));
+//   // printf ("HFSR = %x\n", (*((volatile unsigned  *)(0xE000ED2C))));
+//   // printf ("DFSR = %x\n", (*((volatile unsigned  *)(0xE000ED30))));
+//   // printf ("AFSR = %x\n", (*((volatile unsigned  *)(0xE000ED3C))));
+
+//   while (1) { ;; }
+// }
+
+/**
+  * @brief  This function handles Hard Fault exception.
+  * @param  None
+  * @retval None
+  */
+// void HardFault_Handler(void)
+// {
+//   asm(
+//   "tst lr, #4\n\t"
+//   "ite eq\n\t"
+//   "mrseq r0, msp\n\t"
+//   "mrsne r0, psp\n\t"
+//   "b hard_fault_handler_c"
+//   );
+// }
+
 void mySystemInit()
 {
-   // oscillators
-   // pmu
-   // vreg
-
-   // set Priority for Cortex-M0 System Interrupts.
-   NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
-   // TBD the rest of them
-
-  // disable the watchdog.
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+
+  // enable APB clock to the Port Bank module
+  SI32_CLKCTRL_A_enable_apb_to_modules_0 (SI32_CLKCTRL_0, SI32_CLKCTRL_A_APBCLKG0_PB0CEN_MASK);
+  // make the SWO pin (PB1.3) push-pull to enable SWV printf
+  //SI32_PBSTD_A_set_pins_push_pull_output (SI32_PBSTD_1, (1<<3));
 }
 
 void hw_init()
@@ -127,7 +178,10 @@ void hw_init()
                                 SI32_CLKCTRL_A_AHBCLKG_FLASHCEN_ENABLED_U32 |
                                 SI32_CLKCTRL_A_AHBCLKG_EMIF0CEN_DISABLED_U32 |
                                 SI32_CLKCTRL_A_AHBCLKG_USB0BCEN_ENABLED_U32;
-                                
+                           
+
+  SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+
 
   /* --------------------- */
   /* Initialize USB Module */
