@@ -50,14 +50,32 @@ static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI3
 /**************************************************************************/
 void intp_clear_all()
 {
-    /*
-    UDINT  = 0;
-
-    for (i=0; i<MAX_EPS; i++)
+    uint32_t usbCommonInterruptMask = SI32_USB_A_read_cmint(SI32_USB_0);
+    uint32_t usbEpInterruptMask = SI32_USB_A_read_ioint(SI32_USB_0);
+    
+    if (usbCommonInterruptMask)
     {
-        ep_select(i);
-        UEINTX = 0;
-    }*/
+    // SI32_USB_A_clear_common_interrupts( SI32_USB_0, bCommon );
+        {
+            volatile uint32_t * CMINT = /* _addr_of */ ((uint32_t *) 0x40018030) ;
+            *CMINT = usbCommonInterruptMask ;
+        }
+    }
+
+    if (usbEpInterruptMask)
+    {
+        // Note:  Clearing the IRQ simply clears the interrupt line.  It does not
+        // clear the interrupt source bit, nor does it relay any info to the hardware
+        // about whether or not a packet is available, or has been consumed from the
+        // fifo.
+        // SI32_USB_A_clear_endpoint_interrupts( SI32_USB_0, usbEpInterruptMask );
+        {
+          volatile uint32_t * IOINT = /* _addr_of */ ((uint32_t *) 0x40018020) ;
+          *IOINT = usbEpInterruptMask;
+        }
+    }
+
+
 }
 
 /**************************************************************************/
@@ -158,14 +176,6 @@ void USB0_IRQHandler( void )
         }
     }
 
-
-    if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
-        ep_clear_stall( ep_intp_num );
-
-    if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
-        SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
-
-
     if( ep_intp_num > 0 )
     {
         if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
@@ -176,14 +186,20 @@ void USB0_IRQHandler( void )
 
         if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
         {
-            ep_read( ep_intp_num );
-            //pcb->pending_data |= ( 1 << ep_intp_num );
+            //ep_read( ep_intp_num );
+            pcb->pending_data |= ( 1 << ep_intp_num );
             return;
         }
 
     }
     else
     {
+        if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
+            ep_clear_stall( ep_intp_num );
+
+        if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
+            SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
+
         if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
         {
             ep_read( ep_intp_num );
@@ -194,25 +210,25 @@ void USB0_IRQHandler( void )
     if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
     {
         intp_suspend();
-        return;
+        //return;
     }
 
     if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
     {
         intp_resume();
-        return;
+        //return;
     }
     if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
     {
         intp_eor();
-        return;
+        //return;
     }
     if( ep_intp_num > 0 )
     {
         if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
         {
             ep_write( ep_intp_num );
-            return;
+            //return;
         }
     }
     else
@@ -220,7 +236,7 @@ void USB0_IRQHandler( void )
         if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
         {
             ep_write( ep_intp_num );
-            return;
+            //return;
         }
     }
 }

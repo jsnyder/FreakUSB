@@ -268,7 +268,7 @@ void ep_write(U8 ep_num)
                     //ControlReg |= SI32_USB_A_EP0CONTROL_IPRDYI_MASK;
                     //SI32_USB_0->EP0CONTROL.U32 = ControlReg;
                     ongoing_write |= ( 1 < ep_num );
-                    return;
+                    break;
                 }
 
                 SI32_USB_A_write_ep0_fifo_u8( SI32_USB_0, usb_buf_read( ep_num ) );
@@ -282,7 +282,7 @@ void ep_write(U8 ep_num)
         else
         {
             // Make sure we're free to write
-            while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
+            //
 
             for (i=0; i<len; i++)
             {
@@ -290,7 +290,7 @@ void ep_write(U8 ep_num)
                 if ( i == ep_size )
                 {
                     // we've filled the max packet size so break and send the data
-                    return;
+                    break;
                 }
 
                 SI32_USBEP_A_write_fifo_u8( usb_ep[ ep_num - 1 ], usb_buf_read( ep_num ) );
@@ -299,6 +299,8 @@ void ep_write(U8 ep_num)
             // clearing these two will send the data out
             SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
+
+            while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
         }
     }
 }
@@ -462,7 +464,7 @@ void ep_init()
     // configure the control endpoint first since that one is needed for enumeration
     ep_config( EP_CTRL, XFER_CONTROL, DIR_OUT, MAX_PACKET_SZ );
 
-    //NVIC_EnableIRQ( USB0_IRQn );
+    NVIC_EnableIRQ( USB0_IRQn );
 
     // set the rx setup interrupt to received the enumeration interrupts
     //ep_select(EP_CTRL);
@@ -598,7 +600,9 @@ void ep_drain_fifo(U8 ep)
 
         if( ep == 0 )
         {
+            U32 delay_value;
             SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
+            for (delay_value = 0; delay_value < 50000; delay_value++);
             SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
         }
         else

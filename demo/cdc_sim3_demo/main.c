@@ -44,7 +44,7 @@
 #include "hw.h"
 
 static U8 msg[MAX_MSG_SIZE];
-static U8 *msg_ptr;
+static U8 *msg_ptr = msg;
 
 static cmd_t cmd_tbl[] = 
 {
