@@ -129,6 +129,82 @@ void intp_eor()
     ep_init();
 }
 
+U8 get_usbep_num()
+{
+    if( SI32_USB_A_is_ep1_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep1_out_interrupt_pending( SI32_USB_0 ))
+        return 1;
+
+    if( SI32_USB_A_is_ep2_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep2_out_interrupt_pending( SI32_USB_0 ))
+        return 2;
+
+    if( SI32_USB_A_is_ep3_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep3_out_interrupt_pending( SI32_USB_0 ))
+        return 3;
+
+    if( SI32_USB_A_is_ep4_in_interrupt_pending( SI32_USB_0 ) ||
+        SI32_USB_A_is_ep4_out_interrupt_pending( SI32_USB_0 ))
+        return 4;
+
+    return 0xFF;
+}
+
+void ep0_handler( void )
+{
+    uint32_t ControlReg = SI32_USB_A_read_ep0control(SI32_USB_0);
+
+    if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
+        ep_clear_stall( 0 );
+
+    if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
+        SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
+
+    if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
+    {
+        ep_read( 0 );
+        return;
+    }
+
+    if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
+    {
+        ep_write( 0 );
+        //return;
+    }
+}
+
+void usbep_handler( U8 ep_intp_num )
+{
+    usb_pcb_t *pcb;
+
+    if( get_usbep_num == 0xFF )
+        return;
+
+    // get the pcb for later use
+    pcb = usb_pcb_get();
+
+    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+        SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+        SI32_USBEP_A_clear_out_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+    if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
+    {
+        //ep_read( ep_intp_num );
+        //pcb->pending_data |= ( 1 << ep_intp_num );
+        ep_read( ep_intp_num );
+        return;
+    }
+
+    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
+    {
+        ep_write( ep_intp_num );
+        //return;
+    }
+}
+
+
 /**************************************************************************/
 /*!
     This is the ISR that handles communications for the AT90USB. These interrupts
@@ -137,20 +213,11 @@ void intp_eor()
 /**************************************************************************/
 void USB0_IRQHandler( void )
 {
-    U8 ep_intp_num, intp_src;
-    usb_pcb_t *pcb;
 
-    uint32_t ControlReg = SI32_USB_A_read_ep0control(SI32_USB_0);
     uint32_t usbCommonInterruptMask = SI32_USB_A_read_cmint(SI32_USB_0);
     uint32_t usbEpInterruptMask = SI32_USB_A_read_ioint(SI32_USB_0);
+    U8 ep_intp_num = get_usbep_num();
 
-    // get the pcb for later use
-    pcb = usb_pcb_get();
-
-    if ((ep_intp_num= ep_intp_get_num()) == 0xFF)
-    {
-        return;
-    }
 
     // Clear the interrupt sources, then process the interrupts by the mask
     // so that any subsequent interrupt will immediately reenter the IRQHandler
@@ -176,69 +243,27 @@ void USB0_IRQHandler( void )
         }
     }
 
-    if( ep_intp_num > 0 )
+    if( usbEpInterruptMask & ( SI32_USB_A_IOINT_IN1I_MASK | SI32_USB_A_IOINT_OUT1I_MASK |
+                               SI32_USB_A_IOINT_IN2I_MASK | SI32_USB_A_IOINT_OUT2I_MASK |
+                               SI32_USB_A_IOINT_IN3I_MASK | SI32_USB_A_IOINT_OUT3I_MASK |
+                               SI32_USB_A_IOINT_IN4I_MASK | SI32_USB_A_IOINT_OUT4I_MASK ) )
     {
-        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
-            SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
-
-        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
-            SI32_USBEP_A_clear_out_stall_sent( usb_ep[ ep_intp_num - 1 ] );
-
-        if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
-        {
-            //ep_read( ep_intp_num );
-            pcb->pending_data |= ( 1 << ep_intp_num );
-            return;
-        }
-
+        usbep_handler( ep_intp_num );
     }
-    else
+    
+    if( usbEpInterruptMask & SI32_USB_A_IOINT_EP0I_MASK )
     {
-        if (ControlReg & SI32_USB_A_EP0CONTROL_STSTLI_MASK)
-            ep_clear_stall( ep_intp_num );
-
-        if (ControlReg & SI32_USB_A_EP0CONTROL_SUENDI_MASK)
-            SI32_USB_A_clear_setup_end_early_ep0( SI32_USB_0 );
-
-        if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
-        {
-            ep_read( ep_intp_num );
-            return;
-        }
+        ep0_handler();
     }
 
     if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
-    {
         intp_suspend();
-        //return;
-    }
 
     if( SI32_USB_A_is_resume_interrupt_pending( SI32_USB_0 ) )
-    {
         intp_resume();
-        //return;
-    }
+
     if( SI32_USB_A_is_reset_interrupt_pending( SI32_USB_0 ) )
-    {
         intp_eor();
-        //return;
-    }
-    if( ep_intp_num > 0 )
-    {
-        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
-        {
-            ep_write( ep_intp_num );
-            //return;
-        }
-    }
-    else
-    {
-        if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
-        {
-            ep_write( ep_intp_num );
-            //return;
-        }
-    }
 }
 
 /**************************************************************************/

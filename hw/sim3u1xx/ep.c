@@ -282,7 +282,7 @@ void ep_write(U8 ep_num)
         else
         {
             // Make sure we're free to write
-            //
+
 
             for (i=0; i<len; i++)
             {
@@ -300,7 +300,9 @@ void ep_write(U8 ep_num)
             SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
 
-            while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
+
+            while( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] ) );
+            //while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
         }
     }
 }
@@ -343,10 +345,10 @@ void ep_read(U8 ep_num)
         if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] ))
         {
             // Clear overrun out overrun if it has occured
-            // if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
-            //     SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
+            if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
+                SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
 
-            // SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
+            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
         }
     }
     if (len > 0)

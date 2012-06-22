@@ -97,6 +97,9 @@ void cdc_req_handler(req_t *req)
             // wait for the setup data to be sent to the control endpoint
             while (pcb->fifo[EP_CTRL].len == 0)
             {
+                U32 ctr = 0;
+                for(ctr=0; ctr<200000; ctr++);
+                return;
                 // keep the nop for a place to set a breakpoint on and to make it obvious we're
                 // waiting for something.
                 //asm("nop");
