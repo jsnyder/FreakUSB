@@ -51,7 +51,7 @@ enum
 #define PROGMEM 
 
 #define PSTR(a) (a)
-#define printf_P(a) printf(a)
+#define printf_P(a) fputs(a, stdout)
 
 void hw_init();
 void hw_intp_disable();

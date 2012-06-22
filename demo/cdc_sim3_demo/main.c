@@ -145,7 +145,9 @@ void cmd_parse(char *cmd)
             return;
         }
     }
-    printf("CMD: Command not recognized: %s\n",cmd);
+    printf_P("CMD: Command not recognized: ");
+    printf_P(cmd);
+    printf_P("\n");
 
     cmd_menu();
 }
