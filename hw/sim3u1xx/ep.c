@@ -281,9 +281,11 @@ void ep_write(U8 ep_num)
         }
         else
         {
+            if( ep_dir_get( ep_num )  == DIR_OUT )
+                return;
             // Make sure we're free to write
-
-
+            while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
+            
             for (i=0; i<len; i++)
             {
                 // check if we've reached the max packet size for the endpoint
@@ -302,7 +304,7 @@ void ep_write(U8 ep_num)
 
 
             while( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] ) );
-            //while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
+            //
         }
     }
 }
@@ -335,6 +337,9 @@ void ep_read(U8 ep_num)
     }
     else if( ep_num > 0 )
     {
+        if( ep_dir_get( ep_num )  == DIR_IN )
+            return;
+
         len = SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] );
 
         for (i=0; i<len; i++)

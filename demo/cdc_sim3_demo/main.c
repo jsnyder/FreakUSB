@@ -110,9 +110,10 @@ void rx()
 /**************************************************************************/
 static void cmd_menu()
 {
-    printf_P(PSTR("\n"));
-    printf_P(PSTR("********** FreakUSB **************\n"));
-    printf_P(PSTR("FREAKUSB >> "));
+    fputs( "\n", stdout );
+    fputs( "********** FreakUSB **************\n", stdout );
+    fputs( "FREAKUSB >> ", stdout );
+    fflush( stdout );
 }
 
 
@@ -144,7 +145,7 @@ void cmd_parse(char *cmd)
             return;
         }
     }
-    printf_P(PSTR("CMD: Command not recognized.\n"));
+    printf("CMD: Command not recognized: %s\n",cmd);
 
     cmd_menu();
 }
