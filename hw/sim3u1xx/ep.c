@@ -35,7 +35,11 @@
 #include "hw.h"
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
+#if defined( USE_CDC_CLASS )
 #include "cdc.h"
+#elif defined( USE_DFU_CLASS )
+#include "dfu.h"
+#endif
 
 
 static SI32_USBEP_A_Type* const usb_ep[] = { SI32_USB_0_EP1, SI32_USB_0_EP2, SI32_USB_0_EP3, SI32_USB_0_EP4 };
@@ -92,7 +96,7 @@ U8 ep_type_get(U8 ep_num)
 {
     if( ep_num == 0 )
         return XFER_CONTROL;
-    
+
     if( ep_num == 1 || ep_num == 3)
         return XFER_BULK;
     else
@@ -152,7 +156,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     if( ep_num > 0 )
     {
         if( dir == DIR_OUT )
-        {        
+        {
             switch( type )
             {
             case XFER_ISOCHRONOUS:
@@ -285,7 +289,7 @@ void ep_write(U8 ep_num)
                 return;
             // Make sure we're free to write
             while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
-            
+
             for (i=0; i<len; i++)
             {
                 // check if we've reached the max packet size for the endpoint
@@ -594,7 +598,7 @@ void ep_drain_fifo(U8 ep)
 {
     U8 byte_cnt;
     usb_pcb_t *pcb = usb_pcb_get();
-    
+
     if( ep == 0 )
         byte_cnt = SI32_USB_A_read_ep0_count( SI32_USB_0 );
     else
@@ -620,5 +624,5 @@ void ep_drain_fifo(U8 ep)
             SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
         }
 
-    }   
+    }
 }

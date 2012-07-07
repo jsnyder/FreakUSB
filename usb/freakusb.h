@@ -44,7 +44,11 @@
 #include "types.h"
 
 // class specific
+#if defined( USE_CDC_CLASS )
 #include "cdc.h"
+#elif defined( USE_DFU_CLASS )
+#include "dfu.h"
+#endif
 
 // hw specific
 #include "hw.h"
@@ -144,6 +148,7 @@
 #define INTF_DESCR          4
 #define EP_DESCR            5
 #define DEV_QUAL_DESCR      6
+#define DFU_FUNC_DESCR      33
 
 // request types
 #define HOST_TO_DEVICE      0x00
@@ -255,7 +260,9 @@ U8 desc_dev_get_len();
 U8 *desc_cfg_get();
 U8 desc_cfg_get_len();
 U8 *desc_dev_qual_get();
+U8 *desc_dfu_func_get();
 U8 desc_dev_qual_get_len();
+U8 desc_dfu_func_get_len();
 U8 *desc_str_get(U8 index);
 U8 desc_str_get_len(U8 index);
 
