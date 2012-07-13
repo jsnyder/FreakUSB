@@ -333,10 +333,13 @@ void ep_read(U8 ep_num)
             usb_buf_write( ep_num,  SI32_USB_A_read_ep0_fifo_u8( SI32_USB_0 ) );
         }
 
+                   //if( len == 8 )
+            //    
+
         if( 0==SI32_USB_A_read_ep0_count( SI32_USB_0 ) )
         {
             //SI32_USB_A_set_data_end_ep0(SI32_USB_0);
-            //SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+ 
         }
     }
     else if( ep_num > 0 )

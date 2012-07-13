@@ -38,7 +38,7 @@
 #include "freakusb.h"
 #include "hw.h"
 
-#define wTransferSize 1024
+#define wTransferSize 64
 
 U8 dev_desc[] PROGMEM =
 {

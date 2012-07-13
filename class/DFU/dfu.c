@@ -39,6 +39,8 @@
 /*******************************************************************/
 #include "freakusb.h"
 #include "dfu.h"
+#include "sim3u1xx.h"
+#include "sim3u1xx_Types.h"
 
 DFUStatus dfu_status;
 
@@ -76,11 +78,9 @@ void dfu_req_handler(req_t *req)
             // wvalue is wTimeout
             // wLength is zero
             // data is none
-            if( dfu_status.bState == appIDLE )
-            {
-                dfu_status.bState = appDETACH;
-                dfu_status.bStatus = OK;
-            }
+            dfu_status.bState = appDETACH;
+            dfu_status.bStatus = OK;
+
         }
         break;
 
@@ -90,7 +90,56 @@ void dfu_req_handler(req_t *req)
             // wvalue is wBlockNum
             // wlength is Length
             // data is firmware
+            if( dfu_status.bState == dfuIDLE )
+            {
+                if( req->len > 0 )
+                {
+                    dfu_status.bState = dfuDNLOAD_SYNC;
+                }
+                else
+                {
+                    dfu_status.bState  = dfuERROR;
+                    dfu_status.bStatus = errNOTDONE;
+                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+                    ep_send_zlp(EP_CTRL);
+                    return;
+                }
+            }
+        	i = req->val;
+            if( dfu_status.bState == dfuDNLOAD_IDLE )
+            {
+                if( req->len > 0 )
+                {
+                    dfu_status.bState = dfuDNLOAD_SYNC;
+                }
+                else
+                {
+                    dfu_status.bState  = dfuMANIFEST_SYNC;
+                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+                    ep_send_zlp(EP_CTRL);
+                    return;
+                }
+            }
 
+            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+
+            while(pcb->fifo[EP_CTRL].len < req->len)
+            {
+                //ep_read(EP_CTRL);
+            	i = pcb->fifo[EP_CTRL].len;
+            }
+
+            // clear the setup flag if needed
+            pcb->flags &= ~(1<<SETUP_DATA_AVAIL);
+
+            // send out a zero-length packet to ack to the host that we received
+            // the new line coding
+
+            for(i = 0; i < pcb->fifo[EP_CTRL].len; i++)
+                usb_buf_read(EP_CTRL);
+
+            
+            ep_send_zlp(EP_CTRL);
         }
         break;
 
@@ -108,6 +157,12 @@ void dfu_req_handler(req_t *req)
     case DFU_GETSTATUS:
         if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
         {
+            // If we're still transmitting blocks
+            if( dfu_status.bState == dfuDNLOAD_SYNC )
+                dfu_status.bState=dfuDNLOAD_IDLE;
+            if( dfu_status.bState == dfuMANIFEST_SYNC)
+            	dfu_status.bState=dfuMANIFEST;
+
             for (i=0; i<STATUS_SZ; i++)
             {
                 usb_buf_write(EP_CTRL, *((U8 *)&dfu_status + i));
@@ -183,9 +238,7 @@ void dfu_rx_handler()
 void dfu_ep_init()
 {
     // setup the endpoints
-    ep_config(EP_1, XFER_BULK, DIR_IN, MAX_PACKET_SZ);
-    ep_config(EP_2, XFER_INTP, DIR_IN, MAX_PACKET_SZ);
-    ep_config(EP_3, XFER_BULK, DIR_OUT, MAX_PACKET_SZ);
+
 }
 
 /**************************************************************************/
@@ -244,6 +297,15 @@ void dfu_init()
     // for printf to work.
     //stdout = &file_str;
 
+    dfu_status.bStatus = OK;
+    dfu_status.bwPollTimeout0 = 0x00;  
+    dfu_status.bwPollTimeout1 = 0x00;  
+    dfu_status.bwPollTimeout2 = 0x00;  
+    dfu_status.bState = dfuIDLE;
+    dfu_status.iString = 0x00;          /* all strings must be 0x00 until we make them! */
+
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
+
+
 }
 

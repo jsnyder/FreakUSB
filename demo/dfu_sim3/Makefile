@@ -132,7 +132,7 @@ ASRC =
 # Optimization level, can be [0, 1, 2, 3, s].
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = s
+OPT = 0
 
 
 # Debugging format.
@@ -196,7 +196,7 @@ CPPDEFS = -DF_CPU=$(F_CPU)UL
 #  -Wa,...:      tell GCC to pass this to the assembler.
 #    -adhlns...: create assembler listing
 #CFLAGS = -g$(DEBUG)
-#CFLAGS = -g
+CFLAGS = -g
 #CFLAGS += $(CDEFS)
 CFLAGS += -O$(OPT)
 CFLAGS += -D__NEWLIB__

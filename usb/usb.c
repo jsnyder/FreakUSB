@@ -37,7 +37,11 @@
 */
 /*******************************************************************/
 #include "freakusb.h"
+#if defined( USE_CDC_CLASS )
 #include "cdc.h"
+#elif defined( USE_DFU_CLASS )
+#include "dfu.h"
+#endif
 //#include "at90usb.h"
 
 static usb_pcb_t pcb;
