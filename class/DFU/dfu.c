@@ -50,192 +50,12 @@ static void (*rx_handler)();
 
 uint32_t flash_buffer[BLOCK_SIZE_U32];
 uint32_t* flash_buffer_ptr = flash_buffer;
+uint32_t flash_target = 0x3000;
 
-
-/**************************************************************************/
-/*!
-    This is the class specific request handler for the USB Comm-unications Device
-    Class (DFU). Currently, this class driver only support the Virtual COM Port
-    feature of the DFU.
-*/
-/**************************************************************************/
-
-//                             // bmRequestType, wValue,    wIndex,    wLength, Data
-// #define  DFU_DETACH    0x00 // 0x21,          wTimeout,  Interface, Zero,    None
-// #define  DFU_DNLOAD    0x01 // 0x21,          wBlockNum, Interface, Length,  Firmware
-// #define  DFU_UPLOAD    0x02 // 0xA1,          Zero,      Interface, Length,  Firmware
-// #define  DFU_GETSTATUS 0x03 // 0xA1,          Zero,      Interface, 6,       Status
-// #define  DFU_CLRSTATUS 0x04 // 0x21,          Zero,      Interface, Zero,    None
-// #define  DFU_GETSTATE  0x05 // 0xA1,          Zero,      Interface, 1,       State
-// #define  DFU_ABORT     0x06 // 0x21,          Zero,      Interface, Zero,    None
-
-void dfu_req_handler(req_t *req)
-{
-    U8 i;
-    usb_pcb_t *pcb = usb_pcb_get();
-
-    switch (req->req)
-    {
-    case DFU_DETACH:
-        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is wTimeout
-            // wLength is zero
-            // data is none
-            dfu_status.bState = appDETACH;
-            dfu_status.bStatus = OK;
-
-        }
-        break;
-
-    case DFU_DNLOAD:
-        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is wBlockNum
-            // wlength is Length
-            // data is firmware
-            if( dfu_status.bState == dfuIDLE )
-            {
-                if( req->len > 0 )
-                {
-                    dfu_status.bState = dfuDNLOAD_SYNC;
-                }
-                else
-                {
-                    dfu_status.bState  = dfuERROR;
-                    dfu_status.bStatus = errNOTDONE;
-                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
-                    ep_send_zlp(EP_CTRL);
-                    return;
-                }
-            }
-        	i = req->val;
-            if( dfu_status.bState == dfuDNLOAD_IDLE )
-            {
-                if( req->len > 0 )
-                {
-                    dfu_status.bState = dfuDNLOAD_SYNC;
-                }
-                else
-                {
-                    dfu_status.bState  = dfuMANIFEST_SYNC;
-                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
-                    ep_send_zlp(EP_CTRL);
-                    return;
-                }
-            }
-
-            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
-
-            while(pcb->fifo[EP_CTRL].len < req->len)
-            {
-                //ep_read(EP_CTRL);
-            	i = pcb->fifo[EP_CTRL].len;
-            }
-
-            // clear the setup flag if needed
-            pcb->flags &= ~(1<<SETUP_DATA_AVAIL);
-
-            // send out a zero-length packet to ack to the host that we received
-            // the new line coding
-            U8* byte_buf_ptr = ( U8* )flash_buffer_ptr;
-            U8 tmp_len = pcb->fifo[EP_CTRL].len;
-            for(i = 0; i < tmp_len; i++)
-            {
-                *byte_buf_ptr = usb_buf_read(EP_CTRL);
-                byte_buf_ptr++;
-            }
-            flash_buffer_ptr += i/4;
-
-            if( flash_buffer_ptr == flash_buffer + BLOCK_SIZE_U32 )
-            {
-                // Reset buffer pointer
-                flash_buffer_ptr = flash_buffer;
-            }
-
-            if( flash_buffer_ptr > flash_buffer + BLOCK_SIZE_U32)
-            {
-                dfu_status.bState  = dfuERROR;
-            }
-
-            ep_send_zlp(EP_CTRL);
-        }
-        break;
-
-    case DFU_UPLOAD:
-        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is zero
-            // wlength is length
-            // data is firmware
-            // NOT SUPPORTED
-            ep_set_stall(EP_CTRL);
-        }
-        break;
-
-    case DFU_GETSTATUS:
-        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // If we're still transmitting blocks
-            if( dfu_status.bState == dfuDNLOAD_SYNC )
-                dfu_status.bState=dfuDNLOAD_IDLE;
-            if( dfu_status.bState == dfuMANIFEST_SYNC)
-            	dfu_status.bState=dfuMANIFEST;
-            if( dfu_status.bState == dfuMANIFEST)
-                dfu_status.bState=dfuMANIFEST_WAIT_RESET;
-
-            for (i=0; i<STATUS_SZ; i++)
-            {
-                usb_buf_write(EP_CTRL, *((U8 *)&dfu_status + i));
-            }
-            ep_write(EP_CTRL);
-        }
-        break;
-
-    case DFU_CLRSTATUS:
-        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is zero
-            // wlength is 0
-            // data is  none
-            if( dfu_status.bState == dfuERROR )
-            {
-                dfu_status.bStatus = OK;
-                dfu_status.bState = dfuIDLE;
-            }
-        }
-        break;
-
-    case DFU_GETSTATE:
-        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is zero
-            // wlength is 1
-            // data is  state
-            // Transition?: No State Transition
-            usb_buf_write( EP_CTRL, dfu_status.bState );
-        }
-        break;
-
-    case DFU_ABORT:
-        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
-        {
-            // wvalue is zero
-            // wlength is 0
-            // data is none
-            dfu_status.bStatus = OK;
-            dfu_status.bState = dfuIDLE;
-        }
-        break;
-
-    default:
-        ep_set_stall(EP_CTRL);
-        break;
-    }
-}
 
 volatile U8 flash_key_mask  = 0x00;
 volatile U8 armed_flash_key = 0x00;
+volatile U8 need_to_write = 0;
 
 U8 flash_erase( U32 address, U8 verify)
 {
@@ -299,7 +119,7 @@ U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
     SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, armed_flash_key );
     armed_flash_key = 0;
 
-    // Write word-sized 
+    // Write word-sized
     for( U32 wc = count; wc != 0; wc-- )
     {
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
@@ -330,6 +150,216 @@ U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
     hw_intp_enable();
 
     return 0;
+}
+
+/**************************************************************************/
+/*!
+    This is the class specific request handler for the USB Comm-unications Device
+    Class (DFU). Currently, this class driver only support the Virtual COM Port
+    feature of the DFU.
+*/
+/**************************************************************************/
+
+//                             // bmRequestType, wValue,    wIndex,    wLength, Data
+// #define  DFU_DETACH    0x00 // 0x21,          wTimeout,  Interface, Zero,    None
+// #define  DFU_DNLOAD    0x01 // 0x21,          wBlockNum, Interface, Length,  Firmware
+// #define  DFU_UPLOAD    0x02 // 0xA1,          Zero,      Interface, Length,  Firmware
+// #define  DFU_GETSTATUS 0x03 // 0xA1,          Zero,      Interface, 6,       Status
+// #define  DFU_CLRSTATUS 0x04 // 0x21,          Zero,      Interface, Zero,    None
+// #define  DFU_GETSTATE  0x05 // 0xA1,          Zero,      Interface, 1,       State
+// #define  DFU_ABORT     0x06 // 0x21,          Zero,      Interface, Zero,    None
+
+void dfu_req_handler(req_t *req)
+{
+    U8 i;
+    usb_pcb_t *pcb = usb_pcb_get();
+    flash_key_mask = 0x00;
+
+    switch (req->req)
+    {
+    case DFU_DETACH:
+        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is wTimeout
+            // wLength is zero
+            // data is none
+            dfu_status.bState = appDETACH;
+            dfu_status.bStatus = OK;
+
+        }
+        break;
+
+    case DFU_DNLOAD:
+        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is wBlockNum
+            // wlength is Length
+            // data is firmware
+            flash_key_mask = 0x01;
+
+            if( dfu_status.bState == dfuIDLE )
+            {
+                if( req->len > 0 )
+                {
+                    dfu_status.bState = dfuDNLOAD_SYNC;
+                }
+                else
+                {
+                    dfu_status.bState  = dfuERROR;
+                    dfu_status.bStatus = errNOTDONE;
+                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+                    ep_send_zlp(EP_CTRL);
+                    return;
+                }
+            }
+        	i = req->val;
+            if( dfu_status.bState == dfuDNLOAD_IDLE )
+            {
+                if( req->len > 0 )
+                {
+                    dfu_status.bState = dfuDNLOAD_SYNC;
+                }
+                else
+                {
+                    dfu_status.bState  = dfuMANIFEST_SYNC;
+                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+                    ep_send_zlp(EP_CTRL);
+                    return;
+                }
+            }
+
+            SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+
+            while(pcb->fifo[EP_CTRL].len < req->len)
+            {
+                //ep_read(EP_CTRL);
+            	i = pcb->fifo[EP_CTRL].len;
+            }
+
+            // clear the setup flag if needed
+            pcb->flags &= ~(1<<SETUP_DATA_AVAIL);
+
+            // send out a zero-length packet to ack to the host that we received
+            // the new line coding
+            U8* byte_buf_ptr = ( U8* )flash_buffer_ptr;
+            U8 tmp_len = pcb->fifo[EP_CTRL].len;
+            for(i = 0; i < tmp_len; i++)
+            {
+                *byte_buf_ptr = usb_buf_read(EP_CTRL);
+                byte_buf_ptr++;
+            }
+            flash_buffer_ptr += i/4;
+
+            if( flash_buffer_ptr == flash_buffer + BLOCK_SIZE_U32 )
+            {
+
+                // Reset buffer pointer
+                flash_buffer_ptr = flash_buffer;
+                need_to_write = 1;
+            }
+
+            if( flash_buffer_ptr > flash_buffer + BLOCK_SIZE_U32)
+            {
+                dfu_status.bState  = dfuERROR;
+            }
+
+            ep_send_zlp(EP_CTRL);
+        }
+        break;
+
+    case DFU_UPLOAD:
+        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is zero
+            // wlength is length
+            // data is firmware
+            // NOT SUPPORTED
+            ep_set_stall(EP_CTRL);
+        }
+        break;
+
+    case DFU_GETSTATUS:
+        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // If we're still transmitting blocks
+            if( dfu_status.bState == dfuDNLOAD_SYNC )
+            {
+                if( need_to_write == 0)
+                    dfu_status.bState=dfuDNLOAD_IDLE;
+                else
+                {
+                    if( 0 != flash_erase( flash_target, 1 ) )
+                    {
+                        dfu_status.bState  = dfuERROR;
+                        dfu_status.bStatus = errERASE;
+
+                    }
+
+                    if( 0 != flash_write( flash_target, flash_buffer, BLOCK_SIZE_U32 - 1, 0 ) )
+                    {
+                        dfu_status.bState  = dfuERROR;
+                        dfu_status.bStatus = errVERIFY;
+
+                    }
+                    flash_target += BLOCK_SIZE_U32;
+                    need_to_write = 0;
+                }
+            }
+            if( dfu_status.bState == dfuMANIFEST_SYNC)
+            	dfu_status.bState=dfuMANIFEST;
+            if( dfu_status.bState == dfuMANIFEST)
+                dfu_status.bState=dfuMANIFEST_WAIT_RESET;
+
+            for (i=0; i<STATUS_SZ; i++)
+            {
+                usb_buf_write(EP_CTRL, *((U8 *)&dfu_status + i));
+            }
+            ep_write(EP_CTRL);
+
+
+        }
+        break;
+
+    case DFU_CLRSTATUS:
+        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is zero
+            // wlength is 0
+            // data is  none
+            if( dfu_status.bState == dfuERROR )
+            {
+                dfu_status.bStatus = OK;
+                dfu_status.bState = dfuIDLE;
+            }
+        }
+        break;
+
+    case DFU_GETSTATE:
+        if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is zero
+            // wlength is 1
+            // data is  state
+            // Transition?: No State Transition
+            usb_buf_write( EP_CTRL, dfu_status.bState );
+        }
+        break;
+
+    case DFU_ABORT:
+        if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
+        {
+            // wvalue is zero
+            // wlength is 0
+            // data is none
+            dfu_status.bStatus = OK;
+            dfu_status.bState = dfuIDLE;
+        }
+        break;
+
+    default:
+        ep_set_stall(EP_CTRL);
+        break;
+    }
 }
 
 /**************************************************************************/
@@ -389,7 +419,7 @@ void dfu_init()
     //stdout = &file_str;
 
     dfu_status.bStatus = OK;
-    dfu_status.bwPollTimeout0 = 0x00;  
+    dfu_status.bwPollTimeout0 = 0x64;  
     dfu_status.bwPollTimeout1 = 0x00;  
     dfu_status.bwPollTimeout2 = 0x00;  
     dfu_status.bState = dfuIDLE;
