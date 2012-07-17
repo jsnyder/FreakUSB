@@ -48,6 +48,10 @@ DFUStatus dfu_status;
 // and will handle any incoming data.
 static void (*rx_handler)();
 
+uint32_t flash_buffer[BLOCK_SIZE_U32];
+uint32_t* flash_buffer_ptr = flash_buffer;
+
+
 /**************************************************************************/
 /*!
     This is the class specific request handler for the USB Comm-unications Device
@@ -134,11 +138,26 @@ void dfu_req_handler(req_t *req)
 
             // send out a zero-length packet to ack to the host that we received
             // the new line coding
+            U8* byte_buf_ptr = ( U8* )flash_buffer_ptr;
+            U8 tmp_len = pcb->fifo[EP_CTRL].len;
+            for(i = 0; i < tmp_len; i++)
+            {
+                *byte_buf_ptr = usb_buf_read(EP_CTRL);
+                byte_buf_ptr++;
+            }
+            flash_buffer_ptr += i/4;
 
-            for(i = 0; i < pcb->fifo[EP_CTRL].len; i++)
-                usb_buf_read(EP_CTRL);
+            if( flash_buffer_ptr == flash_buffer + BLOCK_SIZE_U32 )
+            {
+                // Reset buffer pointer
+                flash_buffer_ptr = flash_buffer;
+            }
 
-            
+            if( flash_buffer_ptr > flash_buffer + BLOCK_SIZE_U32)
+            {
+                dfu_status.bState  = dfuERROR;
+            }
+
             ep_send_zlp(EP_CTRL);
         }
         break;
@@ -162,6 +181,8 @@ void dfu_req_handler(req_t *req)
                 dfu_status.bState=dfuDNLOAD_IDLE;
             if( dfu_status.bState == dfuMANIFEST_SYNC)
             	dfu_status.bState=dfuMANIFEST;
+            if( dfu_status.bState == dfuMANIFEST)
+                dfu_status.bState=dfuMANIFEST_WAIT_RESET;
 
             for (i=0; i<STATUS_SZ; i++)
             {
@@ -213,6 +234,104 @@ void dfu_req_handler(req_t *req)
     }
 }
 
+volatile U8 flash_key_mask  = 0x00;
+volatile U8 armed_flash_key = 0x00;
+
+U8 flash_erase( U32 address, U8 verify)
+{
+    // Write the address of the Flash page to WRADDR
+    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
+    // Enter Flash Erase Mode
+    SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
+
+    // Disable interrupts
+    hw_intp_disable();
+
+    // Unlock the flash interface for a single access
+    armed_flash_key = flash_key_mask ^ 0xA4;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = flash_key_mask ^ 0xF0;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = 0;
+
+    // Write any value to initiate a page erase.
+    SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0xA5);
+
+    // Wait for flash operation to complete
+    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0));
+
+    if( verify )
+    {
+        address &= ~(FLASH_PAGE_SIZE_U8 - 1); // Round down to nearest even page address
+        U32* verify_address = (U32*)address;
+
+        for( U32 wc = FLASH_PAGE_SIZE_U32; wc != 0; wc-- )
+        {
+            if ( *verify_address != 0xFFFFFFFF )
+                return 1;
+
+            verify_address++;
+        }
+    }
+
+    hw_intp_enable();
+
+    return 0;
+}
+
+
+U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
+{
+    U32* tmpdata = data;
+
+    // Write the address of the Flash page to WRADDR
+    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
+    // Enter flash erase mode
+    SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
+
+    // disable interrupts
+    hw_intp_disable();
+
+    // Unlock flash interface for multiple accesses
+    armed_flash_key = flash_key_mask ^ 0xA4;
+    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, armed_flash_key );
+    armed_flash_key = flash_key_mask ^ 0xF3;
+    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, armed_flash_key );
+    armed_flash_key = 0;
+
+    // Write word-sized 
+    for( U32 wc = count; wc != 0; wc-- )
+    {
+        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
+        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
+        data++;
+    }
+
+    // Relock flash interface
+    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, 0x5A );
+
+    // Wait for flash operation to complete
+    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) );
+
+    if( verify )
+    {
+        U32* verify_address = (U32*)address;
+
+        for( U32 wc = count; wc != 0; wc-- )
+        {
+            if (*verify_address != *tmpdata++)
+                return 1;
+
+            verify_address++;
+        }
+    }
+
+    // re-enable interrupts
+    hw_intp_enable();
+
+    return 0;
+}
+
 /**************************************************************************/
 /*!
     This is the rx data handler for the DFU class driver. This should be
@@ -255,35 +374,7 @@ void dfu_reg_rx_handler(void (*rx)())
     }
 }
 
-/**************************************************************************/
-/*!
-    This is the putchar function that is used by avr-libc's printf. We need
-    to hook this function into the stdout file stream using the FDEV_SETUP_STREAM
-    macro in avr-libc. Once the stream is set up, we hook the stream to stdout
-    and we can do printfs via USB.
-*/
-/**************************************************************************/
-int dfu_demo_putchar(char c, FILE *unused)
-{
-    usb_pcb_t *pcb = usb_pcb_get();
-    
-    if (!(pcb->flags & (1<<ENUMERATED)))
-    {
-        return 0;
-    }
 
-    if (c == '\n')
-    {
-        usb_buf_write(EP_1, '\n');
-        usb_buf_write(EP_1, '\r');
-    }
-    else
-    {
-      usb_buf_write(EP_1, (U8)c);
-    }
-    ep_write(EP_1);
-    return 0;
-}
 
 /**************************************************************************/
 /*!
