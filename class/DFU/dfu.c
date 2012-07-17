@@ -107,16 +107,16 @@ U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
     // Write the address of the Flash page to WRADDR
     SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
     // Enter flash erase mode
-    SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
+    SI32_FLASHCTRL_A_exit_flash_erase_mode(SI32_FLASHCTRL_0);
 
     // disable interrupts
     hw_intp_disable();
 
     // Unlock flash interface for multiple accesses
     armed_flash_key = flash_key_mask ^ 0xA4;
-    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, armed_flash_key );
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
     armed_flash_key = flash_key_mask ^ 0xF3;
-    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, armed_flash_key );
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
     armed_flash_key = 0;
 
     // Write word-sized
@@ -173,7 +173,6 @@ void dfu_req_handler(req_t *req)
 {
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
-    flash_key_mask = 0x00;
 
     switch (req->req)
     {
@@ -196,6 +195,8 @@ void dfu_req_handler(req_t *req)
             // wlength is Length
             // data is firmware
             flash_key_mask = 0x01;
+
+
 
             if( dfu_status.bState == dfuIDLE )
             {
@@ -252,7 +253,6 @@ void dfu_req_handler(req_t *req)
 
             if( flash_buffer_ptr == flash_buffer + BLOCK_SIZE_U32 )
             {
-
                 // Reset buffer pointer
                 flash_buffer_ptr = flash_buffer;
                 need_to_write = 1;
@@ -284,30 +284,21 @@ void dfu_req_handler(req_t *req)
             // If we're still transmitting blocks
             if( dfu_status.bState == dfuDNLOAD_SYNC )
             {
-                if( need_to_write == 0)
+                if( need_to_write == 0 )
                     dfu_status.bState=dfuDNLOAD_IDLE;
                 else
                 {
-                    if( 0 != flash_erase( flash_target, 1 ) )
-                    {
-                        dfu_status.bState  = dfuERROR;
-                        dfu_status.bStatus = errERASE;
-
-                    }
-
-                    if( 0 != flash_write( flash_target, flash_buffer, BLOCK_SIZE_U32 - 1, 0 ) )
-                    {
-                        dfu_status.bState  = dfuERROR;
-                        dfu_status.bStatus = errVERIFY;
-
-                    }
-                    flash_target += BLOCK_SIZE_U32;
-                    need_to_write = 0;
+                	dfu_status.bState=dfuDNBUSY;
                 }
             }
-            if( dfu_status.bState == dfuMANIFEST_SYNC)
+            else if( dfu_status.bState == dfuDNBUSY )
+            {
+                if( need_to_write == 0)
+                    dfu_status.bState=dfuDNLOAD_SYNC;
+            }
+            else if( dfu_status.bState == dfuMANIFEST_SYNC)
             	dfu_status.bState=dfuMANIFEST;
-            if( dfu_status.bState == dfuMANIFEST)
+            else if( dfu_status.bState == dfuMANIFEST)
                 dfu_status.bState=dfuMANIFEST_WAIT_RESET;
 
             for (i=0; i<STATUS_SZ; i++)
@@ -315,6 +306,25 @@ void dfu_req_handler(req_t *req)
                 usb_buf_write(EP_CTRL, *((U8 *)&dfu_status + i));
             }
             ep_write(EP_CTRL);
+
+            if(need_to_write)
+            {
+                flash_key_mask = 0x01;
+                if( 0 != flash_erase( flash_target, 1 ) )
+                {
+                    dfu_status.bState  = dfuERROR;
+                    dfu_status.bStatus = errERASE;
+                }
+                flash_key_mask = 0x01;
+                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, BLOCK_SIZE_U32 - 1, 1 ) )
+                {
+                    dfu_status.bState  = dfuERROR;
+                    dfu_status.bStatus = errVERIFY;
+                }
+                flash_target += BLOCK_SIZE_U8;
+                need_to_write = 0;
+                dfu_status.bState=dfuDNLOAD_SYNC;
+            }
 
 
         }
@@ -419,7 +429,7 @@ void dfu_init()
     //stdout = &file_str;
 
     dfu_status.bStatus = OK;
-    dfu_status.bwPollTimeout0 = 0x64;  
+    dfu_status.bwPollTimeout0 = 0xFF;  
     dfu_status.bwPollTimeout1 = 0x00;  
     dfu_status.bwPollTimeout2 = 0x00;  
     dfu_status.bState = dfuIDLE;
