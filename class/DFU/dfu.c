@@ -57,6 +57,22 @@ volatile U8 flash_key_mask  = 0x00;
 volatile U8 armed_flash_key = 0x00;
 volatile U8 need_to_write = 0;
 
+void boot_image( void )
+{
+    volatile uint32_t jumpaddr;
+    void (*app_fn)(void) = NULL;
+
+    // prepare jump address
+    jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
+    // prepare jumping function
+    app_fn = (void (*)(void)) jumpaddr;
+    // initialize user application's stack pointer
+    __set_MSP(*(volatile uint32_t*) 0x3000);
+    // jump.
+    app_fn();
+}
+
+
 U8 flash_erase( U32 address, U8 verify)
 {
     // Write the address of the Flash page to WRADDR
@@ -307,6 +323,9 @@ void dfu_req_handler(req_t *req)
             }
             ep_write(EP_CTRL);
 
+            if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
+                boot_image();
+
             if(need_to_write)
             {
                 flash_key_mask = 0x01;
@@ -316,7 +335,7 @@ void dfu_req_handler(req_t *req)
                     dfu_status.bStatus = errERASE;
                 }
                 flash_key_mask = 0x01;
-                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, BLOCK_SIZE_U32 - 1, 1 ) )
+                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, BLOCK_SIZE_U32, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errVERIFY;

@@ -130,7 +130,7 @@ U8 vendor_str_desc[] PROGMEM =
 
 U8 prod_str_desc[] PROGMEM =
 {
-    0x32,      // bLength: 0x32 (50 bytes = sizeof str fields + string)
+    0x34,      // bLength: 0x32 (50 bytes = sizeof str fields + string)
     STR_DESCR, // bDescriptorType: String
                // Product name: "FreakLabs RP AVRUSB FLASH"
 
