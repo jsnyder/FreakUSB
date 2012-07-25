@@ -111,6 +111,7 @@ ifeq ($(MCU), sim3u1xx)
 		../../hw/sim3u1xx/hw.c \
 		../../hw/sim3u1xx/isr.c \
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/startup_sim3u1xx_p32.c \
+		../../hw/sim3u1xx/si32Hal/sim3u1xx/system_sim3u1xx.c \
 		syscalls.c
 endif
 	
@@ -132,7 +133,7 @@ ASRC =
 # Optimization level, can be [0, 1, 2, 3, s].
 #     0 = turn off optimization. s = optimize for size.
 #     (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT = 0
+OPT = s
 
 
 # Debugging format.
@@ -201,6 +202,7 @@ CFLAGS = -g
 CFLAGS += -O$(OPT)
 CFLAGS += -D__NEWLIB__
 CFLAGS += -DUSE_DFU_CLASS
+CFLAGS += -D__USE_CMSIS
 #CFLAGS += -funsigned-char
 #CFLAGS += -funsigned-bitfields
 #CFLAGS += -fpack-struct

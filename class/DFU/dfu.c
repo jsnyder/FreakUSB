@@ -66,8 +66,14 @@ void boot_image( void )
     jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
     // prepare jumping function
     app_fn = (void (*)(void)) jumpaddr;
+
+    NVIC_DisableIRQ( USB0_IRQn );
+
+    SCB->VTOR = 0x3000;
+
     // initialize user application's stack pointer
     __set_MSP(*(volatile uint32_t*) 0x3000);
+
     // jump.
     app_fn();
 }
@@ -238,6 +244,11 @@ void dfu_req_handler(req_t *req)
                 }
                 else
                 {
+                    if( flash_buffer_ptr > flash_buffer )
+                    {
+                        need_to_write = 1;
+                        flash_buffer_ptr = flash_buffer;
+                    }
                     dfu_status.bState  = dfuMANIFEST_SYNC;
                     SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
                     ep_send_zlp(EP_CTRL);
@@ -314,7 +325,8 @@ void dfu_req_handler(req_t *req)
             }
             else if( dfu_status.bState == dfuMANIFEST_SYNC)
             	dfu_status.bState=dfuMANIFEST;
-            else if( dfu_status.bState == dfuMANIFEST)
+            else if( dfu_status.bState == dfuMANIFEST &&
+                     need_to_write == 0)
                 dfu_status.bState=dfuMANIFEST_WAIT_RESET;
 
             for (i=0; i<STATUS_SZ; i++)
@@ -326,7 +338,7 @@ void dfu_req_handler(req_t *req)
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
                 boot_image();
 
-            if(need_to_write)
+            if( need_to_write )
             {
                 flash_key_mask = 0x01;
                 if( 0 != flash_erase( flash_target, 1 ) )
@@ -342,7 +354,8 @@ void dfu_req_handler(req_t *req)
                 }
                 flash_target += BLOCK_SIZE_U8;
                 need_to_write = 0;
-                dfu_status.bState=dfuDNLOAD_SYNC;
+                if( dfu_status.bState != dfuMANIFEST )
+                    dfu_status.bState=dfuDNLOAD_SYNC;
             }
 
 
