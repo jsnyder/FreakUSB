@@ -247,7 +247,7 @@ void dfu_req_handler(req_t *req)
                     if( flash_buffer_ptr > flash_buffer )
                     {
                         need_to_write = 1;
-                        flash_buffer_ptr = flash_buffer;
+                        //flash_buffer_ptr = flash_buffer;
                     }
                     dfu_status.bState  = dfuMANIFEST_SYNC;
                     SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
@@ -281,7 +281,7 @@ void dfu_req_handler(req_t *req)
             if( flash_buffer_ptr == flash_buffer + BLOCK_SIZE_U32 )
             {
                 // Reset buffer pointer
-                flash_buffer_ptr = flash_buffer;
+                //flash_buffer_ptr = flash_buffer;
                 need_to_write = 1;
             }
 
@@ -347,11 +347,12 @@ void dfu_req_handler(req_t *req)
                     dfu_status.bStatus = errERASE;
                 }
                 flash_key_mask = 0x01;
-                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, BLOCK_SIZE_U32, 1 ) )
+                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, flash_buffer_ptr - flash_buffer, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errVERIFY;
                 }
+                flash_buffer_ptr = flash_buffer;
                 flash_target += BLOCK_SIZE_U8;
                 need_to_write = 0;
                 if( dfu_status.bState != dfuMANIFEST )
