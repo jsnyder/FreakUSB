@@ -42,6 +42,22 @@
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
 
+
+// Watchdog timer
+#define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
+                                             // periodic early warning interrupt
+
+volatile U8 dfu_reset_counter = 10;         // 10 warnings are allowed
+
+#define RESET_DELAY_MS                2000  // Will result in approx a 2 s
+                                            // reset delay (if early warning isn't captured)
+
+#define EARLY_WARNING_THRESHOLD       (uint32_t)((16400*EARLY_WARNING_DELAY_MS)/1000)
+                                      
+#define RESET_THRESHOLD               (uint32_t)((16400*RESET_DELAY_MS)/1000)
+
+
+
 DFUStatus dfu_status;
 
 // this is the rx handler callback function. it gets registered by the application program
@@ -56,6 +72,7 @@ uint32_t flash_target = 0x3000;
 volatile U8 flash_key_mask  = 0x00;
 volatile U8 armed_flash_key = 0x00;
 volatile U8 need_to_write = 0;
+volatile U8 dfu_communication_started = 0;
 
 void boot_image( void )
 {
@@ -308,6 +325,7 @@ void dfu_req_handler(req_t *req)
     case DFU_GETSTATUS:
         if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
         {
+            dfu_communication_started = 1;
             // If we're still transmitting blocks
             if( dfu_status.bState == dfuDNLOAD_SYNC )
             {
@@ -461,12 +479,50 @@ void dfu_init()
     // for printf to work.
     //stdout = &file_str;
 
+    // If the watchdog reset us, boot the image
+    if (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET)
+    {
+        if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
+            || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
+        {
+            SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
+            SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
+            SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
+
+            boot_image();
+        }
+    }
+
+    // Otherwise prep for loading
     dfu_status.bStatus = OK;
     dfu_status.bwPollTimeout0 = 0xFF;  
     dfu_status.bwPollTimeout1 = 0x00;  
     dfu_status.bwPollTimeout2 = 0x00;  
     dfu_status.bState = dfuIDLE;
     dfu_status.iString = 0x00;          /* all strings must be 0x00 until we make them! */
+
+    // Enable Watchdog Timer
+    // ENABLE CLOCK
+    SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
+                                           SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
+
+    // SETUP MODULE
+    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
+
+    // ENABLE MODULE
+    SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
+
+    // ENABLE INTERRUPTS
+    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+    NVIC_EnableIRQ(WDTIMER0_IRQn);
+    SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
+
+    SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
 

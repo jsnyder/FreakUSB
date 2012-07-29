@@ -266,6 +266,32 @@ void USB0_IRQHandler( void )
         intp_eor();
 }
 
+extern volatile U8 dfu_communication_started;
+extern volatile U8 dfu_reset_counter;
+
+void WDTIMER0_IRQHandler(void)
+{
+    if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
+        SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
+    {
+        if( dfu_communication_started == 1 )
+        {
+            SI32_WDTIMER_A_disable_early_warning_interrupt(SI32_WDTIMER_0);
+            NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+            NVIC_DisableIRQ(WDTIMER0_IRQn);
+
+            SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+            SI32_RSTSRC_A_disable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+        }
+        else if( dfu_reset_counter > 0 )
+        {
+            SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0); 
+            SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
+            dfu_reset_counter--;
+        }
+    }
+}
+
 /**************************************************************************/
 /*!
     This ISR handles general USB functions on the AT90USB. The interrupts

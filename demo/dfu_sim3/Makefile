@@ -112,6 +112,7 @@ ifeq ($(MCU), sim3u1xx)
 		../../hw/sim3u1xx/isr.c \
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/startup_sim3u1xx_p32.c \
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/system_sim3u1xx.c \
+		../../hw/sim3u1xx/si32Hal/sim3u1xx/SI32_RSTSRC_A_Type.c \
 		syscalls.c
 endif
 	
