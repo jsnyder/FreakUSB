@@ -485,9 +485,9 @@ void dfu_init()
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
             || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
         {
-            SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
-            SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
-            SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
+            // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
+            // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
+            // SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
 
             boot_image();
         }

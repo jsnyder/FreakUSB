@@ -1,0 +1,19 @@
+FreakUSB
+========
+
+DFU
+---
+
+* Check out repository
+
+* Navigate to demo/dfu_sim3 directory and execute:
+
+----
+make
+----
+
+Alternately, on Windows, the "build_flash_dfu.cmd" or "build_flash_dfu_101.cmd" (for 1.0.1 toolchain) within the demo/dfu_sim3 directory.
+
+This requires the http://www.silabs.com/Support%20Documents/Software/Si32FlashUtility.zip[Si32FlashUtility] (extract the linked flash utility to C:\Si32FlashUtility, so that Si32FlashUtility.exe is at C:\Si32FlashUtility\Si32FlashUtility.exe).  This tool will generally flash the part more quickly than the alternative approach.
+
+Note that this requires that the linker of any images to be loaded be set to have a 0x3000 offset.  Building without this modification will result in boot failures where the entry points in the image will cause jumps into the bootloader rather than the image.
