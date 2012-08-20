@@ -16,7 +16,7 @@ DriverVer=06/06/2006,1.0.0.0
 DefaultDestDir=12
 
 [ManufName]
-%Modem3% = Modem3, USB\VID_03EB&PID_2018
+%Modem3% = Modem3, USB\VID_10C6&PID_EA80
 
 ;------------------------------------------------------------------------------
 ;  Windows 2000/XP Sections
@@ -51,5 +51,5 @@ ServiceBinary=%12%\usbser.sys
 [Strings]
 COMPANY="FreakLabs"
 MFGNAME="FreakLabs"
-Modem3="FreakLabs RP AVRUSB Virtual COM Port"
+Modem3="FreakLabs RP Virtual COM Port"
 SERVICE="USB Virtual Serial Port CDC Driver"
