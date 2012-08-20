@@ -70,9 +70,11 @@ void ctrl_get_desc(req_t *req)
         desc        = desc_dev_qual_get();
         desc_len    = desc_dev_qual_get_len();
         break;
+#if defined( USE_DFU_CLASS )
     case DFU_FUNC_DESCR:
         desc        = desc_dfu_func_get();
         desc_len    = desc_dfu_func_get_len();
+#endif
     case STR_DESCR:
         desc        = desc_str_get(desc_idx);
         desc_len    = desc_str_get_len(desc_idx);
