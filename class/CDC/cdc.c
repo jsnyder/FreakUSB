@@ -40,6 +40,8 @@
 #include <stdio.h>
 #include "freakusb.h"
 #include "cdc.h"
+#include "sim3u1xx.h"
+#include "sim3u1xx_Types.h"
 
 // set up the iostream here for the printf statement.
 //FILE file_str = FDEV_SETUP_STREAM(cdc_demo_putchar, NULL, _FDEV_SETUP_WRITE);
@@ -94,16 +96,14 @@ void cdc_req_handler(req_t *req)
     case SET_LINE_CODING:
         if (req->type & (HOST_TO_DEVICE | TYPE_CLASS | RECIPIENT_INTF))
         {
-            // wait for the setup data to be sent to the control endpoint
-            while (pcb->fifo[EP_CTRL].len == 0)
+            SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+
+            while(pcb->fifo[EP_CTRL].len < req->len)
             {
-                U32 ctr = 0;
-                for(ctr=0; ctr<200000; ctr++);
-                return;
-                // keep the nop for a place to set a breakpoint on and to make it obvious we're
-                // waiting for something.
-                //asm("nop");
+                //ep_read(EP_CTRL);
+                i = pcb->fifo[EP_CTRL].len;
             }
+
 
             // clear the setup flag if needed
             pcb->flags &= ~(1<<SETUP_DATA_AVAIL);
