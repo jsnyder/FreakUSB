@@ -49,10 +49,10 @@ U8 dev_desc[] PROGMEM =
         0x00,       // bDeviceSubClass: Get from cfg descr
         0x00,       // bDeviceProtocol: Get from cfg descr
         MAX_BUF_SZ, // bMaxPacketSize: MAX_BUF_SZ
-        0xC6,
-        0x10,       // idVendor: 0x10C6 (use SiLabs VID)
-        0x80,
-        0xEA,       // idProduct: 0xEA80 (use SiLabs PID)
+        0xC4,
+        0x10,       // idVendor: Silicon Laboratories Vendor ID (VID): 0x10C4
+        0x19,
+        0x88,       // idProduct: CDC PID: 0x8819
         0x00,
         0x01,       // bcdDevice: 0100 (v1.00)
         1,          // Index of string descriptor describing manufacturer
