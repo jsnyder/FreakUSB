@@ -191,10 +191,10 @@ void usbep_handler( U8 ep_intp_num )
 
     if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
     {
+        ep_read( ep_intp_num );
+        //pcb->pending_data |= ( 1 << ep_intp_num );
         //ep_read( ep_intp_num );
-        pcb->pending_data |= ( 1 << ep_intp_num );
-        //ep_read( ep_intp_num );
-        //return;
+        return;
     }
 
     if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
