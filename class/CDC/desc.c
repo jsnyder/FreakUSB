@@ -178,24 +178,26 @@ U8 lang_str_desc[] PROGMEM =
 
 U8 vendor_str_desc[] PROGMEM =
 {
-    0x14,       // bLength
+    0x26,       // bLength
     STR_DESCR,  // bDescriptorType: String
-                // Manufacturer: "FreakLabs"
-    'F',0, 'r',0, 'e',0, 'a',0, 'k',0, 'L',0, 'a',0, 'b',0,
-    's',0
+                // Manufacturer: "http://www.gsat.us"
+    'h',0, 't',0, 't',0, 'p',0, ':',0, '/',0, '/',0, 'w',0,
+    'w',0, 'w',0, '.',0, 'g',0, 's',0, 'a',0, 't',0, '.',0,
+    'u',0, 's',0
 };
+
+
 
 U8 prod_str_desc[] PROGMEM =
 {
-    0x4A,      // bLength: 0x3E (62 bytes = sizeof str fields + string)
+    0x3C,      // bLength:
     STR_DESCR, // bDescriptorType: String
-               // Product name: "FreakLabs RP AVRUSB Virtual COM Port"
+               // Product name: "GSatMicro Communications Port"
 
-    'F',0, 'r',0, 'e',0, 'a',0, 'k',0, 'L',0, 'a',0, 'b',0,
-    's',0, ' ',0, 'R',0, 'P',0, ' ',0, 'A',0, 'V',0, 'R',0,
-    'U',0, 'S',0, 'B',0, ' ',0, 'V',0, 'i',0, 'r',0, 't',0,
-    'u',0, 'a',0, 'l',0, ' ',0, 'C',0, 'O',0, 'M',0, ' ',0,
-    'P',0, 'o',0, 'r',0, 't',0,
+    'G',0, 'S',0, 'a',0, 't',0, 'M',0, 'i',0, 'c',0, 'r',0,
+    'o',0, ' ',0, 'C',0, 'o',0, 'm',0, 'm',0, 'u',0, 'n',0,
+    'i',0, 'c',0, 'a',0, 't',0, 'i',0, 'o',0, 'n',0, 's',0,
+    ' ',0, 'P',0, 'o',0, 'r',0, 't',0
 };
 
 U8 serial_str_desc[] PROGMEM =

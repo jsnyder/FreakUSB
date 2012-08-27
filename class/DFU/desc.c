@@ -121,23 +121,24 @@ U8 lang_str_desc[] PROGMEM =
 
 U8 vendor_str_desc[] PROGMEM =
 {
-    0x14,       // bLength
+    0x26,       // bLength
     STR_DESCR,  // bDescriptorType: String
-                // Manufacturer: "FreakLabs"
-    'F',0, 'r',0, 'e',0, 'a',0, 'k',0, 'L',0, 'a',0, 'b',0,
-    's',0
+                // Manufacturer: "http://www.gsat.us"
+    'h',0, 't',0, 't',0, 'p',0, ':',0, '/',0, '/',0, 'w',0,
+    'w',0, 'w',0, '.',0, 'g',0, 's',0, 'a',0, 't',0, '.',0,
+    'u',0, 's',0
 };
 
 U8 prod_str_desc[] PROGMEM =
 {
-    0x34,      // bLength: 0x32 (50 bytes = sizeof str fields + string)
+    0x34,      // bLength: 0x3E (62 bytes = sizeof str fields + string)
     STR_DESCR, // bDescriptorType: String
-               // Product name: "FreakLabs RP AVRUSB FLASH"
+               // Product name: "GSatMicro Firmware Upload"
 
-    'F',0, 'r',0, 'e',0, 'a',0, 'k',0, 'L',0, 'a',0, 'b',0,
-    's',0, ' ',0, 'R',0, 'P',0, ' ',0, 'A',0, 'V',0, 'R',0,
-    'U',0, 'S',0, 'B',0, ' ',0, 'F',0, 'L',0, 'A',0, 'S',0,
-    'H',0,
+    'G',0, 'S',0, 'a',0, 't',0, 'M',0, 'i',0, 'c',0, 'r',0,
+    'o',0, ' ',0, 'F',0, 'i',0, 'r',0, 'm',0, 'w',0, 'a',0,
+    'r',0, 'e',0, ' ',0, 'U',0, 'p',0, 'l',0, 'o',0, 'a',0,
+    'd',0,
 };
 
 U8 serial_str_desc[] PROGMEM =
