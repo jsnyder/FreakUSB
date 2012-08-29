@@ -349,6 +349,12 @@ void ep_read(U8 ep_num)
 
         len = SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] );
 
+        if( pcb->fifo[ ep_num ].len + len > MAX_BUF_SZ )
+        {
+            pcb->pending_data |= ( 1 << ep_num );
+            return;
+        }
+
         for (i=0; i<len; i++)
         {
             usb_buf_write(ep_num,  SI32_USBEP_A_read_fifo_u8( usb_ep[ ep_num - 1 ] ));
@@ -610,7 +616,21 @@ void ep_drain_fifo(U8 ep)
     if ( byte_cnt <= ( MAX_BUF_SZ - pcb->fifo[ ep ].len ) )
     {
         ep_read(ep);
-        pcb->pending_data &= ~(1<<ep);
+        if( ep > 0)
+        {
+            if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep - 1 ] ))
+            {
+                if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep - 1 ] ) )
+                    SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep - 1 ] );
+
+                SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
+
+                pcb->pending_data &= ~(1<<ep);
+            }
+
+        }
+        else
+            pcb->pending_data &= ~(1<<ep);
 
         if( ep == 0 )
         {
@@ -618,13 +638,6 @@ void ep_drain_fifo(U8 ep)
             SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
             for (delay_value = 0; delay_value < 50000; delay_value++);
             SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
-        }
-        else
-        {
-            if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep - 1 ] ) )
-                SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep - 1 ] );
-
-            SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep - 1 ] );
         }
 
     }
