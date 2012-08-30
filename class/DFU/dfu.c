@@ -354,7 +354,7 @@ void dfu_req_handler(req_t *req)
             ep_write(EP_CTRL);
 
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
-                boot_image();
+                SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
 
             if( need_to_write )
             {
@@ -480,7 +480,9 @@ void dfu_init()
     //stdout = &file_str;
 
     // If the watchdog reset us, boot the image
-    if (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET)
+    if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET))
     {
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
             || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
