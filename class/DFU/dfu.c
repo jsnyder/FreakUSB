@@ -482,7 +482,8 @@ void dfu_init()
     // If the watchdog reset us, boot the image
     if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET))
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET) ||
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_RTC0_RESET))
     {
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
             || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
