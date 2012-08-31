@@ -212,6 +212,7 @@ void dfu_req_handler(req_t *req)
 {
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
+    U32 count_down;
 
     switch (req->req)
     {
@@ -354,7 +355,10 @@ void dfu_req_handler(req_t *req)
             ep_write(EP_CTRL);
 
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
+            {
+                for (count_down = 0x10000; count_down != 0; count_down--);
                 SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
+            }
 
             if( need_to_write )
             {
@@ -475,11 +479,8 @@ void dfu_reg_rx_handler(void (*rx)())
 /**************************************************************************/
 void dfu_init()
 {
-    // hook the putchar function into the printf stdout filestream. This is needed
-    // for printf to work.
-    //stdout = &file_str;
-
-    // If the watchdog reset us, boot the image
+    U32 *target_boot_address = (U32*)flash_target;
+    // If the watchdog, software, pmu or RTC rest us, boot the image
     if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET) ||
@@ -509,23 +510,27 @@ void dfu_init()
     SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
                                            SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
 
-    // SETUP MODULE
-    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
-    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-    SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
-    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-    SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
 
-    // ENABLE MODULE
-    SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
+    if( *target_boot_address != 0xFFFFFFFF )
+    {
+        // Setup Watchdog Timer
+        SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+        SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
+        while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+        SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
+        while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+        SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
 
-    // ENABLE INTERRUPTS
-    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
-    NVIC_EnableIRQ(WDTIMER0_IRQn);
-    SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
+        // Enable Watchdog Timer
+        SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
 
-    SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+        /// Enable Watchdog Interrupt
+        NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+        NVIC_EnableIRQ(WDTIMER0_IRQn);
+        SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
+
+        SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+    }
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
 
