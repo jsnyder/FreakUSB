@@ -47,7 +47,7 @@
 #define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
                                              // periodic early warning interrupt
 
-volatile U8 dfu_reset_counter = 10;         // 10 warnings are allowed
+volatile U16 dfu_reset_counter = 10;         // 10 warnings are allowed
 
 #define RESET_DELAY_MS                2000  // Will result in approx a 2 s
                                             // reset delay (if early warning isn't captured)
@@ -500,6 +500,7 @@ void dfu_init()
         }
     }
 
+    // For software resets, extend the DFU countdown
     if( SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET )
     {
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)

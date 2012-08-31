@@ -269,7 +269,7 @@ void USB0_IRQHandler( void )
 #if defined( USE_DFU_CLASS )
 
 extern volatile U8 dfu_communication_started;
-extern volatile U8 dfu_reset_counter;
+extern volatile U16 dfu_reset_counter;
 
 void WDTIMER0_IRQHandler(void)
 {
