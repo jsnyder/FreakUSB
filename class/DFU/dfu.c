@@ -356,9 +356,12 @@ void dfu_req_handler(req_t *req)
 
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
             {
+                SI32_USB_A_reset_module( SI32_USB_0 );
+                NVIC_DisableIRQ(USB0_IRQn);
+                SI32_USB_A_disable_module(SI32_USB_0);
                 SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
                 for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
-                SI32_RSTSRC_A_generate_software_reset( SI32_RSTSRC_0 );
+                boot_image();
             }
 
             if( need_to_write )
@@ -484,7 +487,6 @@ void dfu_init()
     // If the watchdog, software, pmu or RTC rest us, boot the image
     if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_RTC0_RESET))
     {
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
@@ -495,6 +497,15 @@ void dfu_init()
             // SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
 
             boot_image();
+        }
+    }
+
+    if( SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET )
+    {
+        if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
+            || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
+        {
+            dfu_reset_counter = 300;
         }
     }
 
