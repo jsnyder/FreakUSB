@@ -487,7 +487,8 @@ void dfu_init()
     // If the watchdog, software, pmu or RTC rest us, boot the image
     if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
         (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_RTC0_RESET))
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_RTC0_RESET) ||
+        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_CMP0_RESET))
     {
         if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
             || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
@@ -499,6 +500,10 @@ void dfu_init()
             boot_image();
         }
     }
+
+    // Boot if 3.8 is low
+    if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) == 0 )
+        boot_image();
 
     // For software resets, extend the DFU countdown
     if( SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET )
