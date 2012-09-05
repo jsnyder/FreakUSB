@@ -208,11 +208,33 @@ U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
 // #define  DFU_GETSTATE  0x05 // 0xA1,          Zero,      Interface, 1,       State
 // #define  DFU_ABORT     0x06 // 0x21,          Zero,      Interface, Zero,    None
 
+void wait_ms_using_usb(U32 delay_amount)
+{
+   U32 elapsed_time, start_time, last_time;
+
+   elapsed_time = 0;
+   start_time = SI32_USB_0->FRAME.U32;
+
+   while (elapsed_time < delay_amount)
+   {
+      // Find how much time has elapsed
+      last_time = SI32_USB_0->FRAME.U32;
+
+      if (last_time >= start_time)
+      {
+         elapsed_time = last_time - start_time;
+      }
+      else
+      {
+         elapsed_time = 2048 + last_time - start_time;
+      }
+   }
+}
+
 void dfu_req_handler(req_t *req)
 {
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
-    U32 count_down;
 
     switch (req->req)
     {
@@ -326,6 +348,7 @@ void dfu_req_handler(req_t *req)
     case DFU_GETSTATUS:
         if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
         {
+
             dfu_communication_started = 1;
             // If we're still transmitting blocks
             if( dfu_status.bState == dfuDNLOAD_SYNC )
@@ -356,9 +379,7 @@ void dfu_req_handler(req_t *req)
 
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
             {
-                SI32_USB_A_reset_module( SI32_USB_0 );
-                NVIC_DisableIRQ(USB0_IRQn);
-                SI32_USB_A_disable_module(SI32_USB_0);
+                wait_ms_using_usb(200);
                 SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
                 for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
                 boot_image();
