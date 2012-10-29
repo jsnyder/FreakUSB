@@ -361,7 +361,7 @@ void dfu_req_handler(req_t *req)
                 else
                 {
                 	dfu_status.bState=dfuDNBUSY;
-                    dfu_status.bwPollTimeout0 = 0xFF;  
+                    dfu_status.bwPollTimeout0 = 0x3F;
                 }
             }
             else if( dfu_status.bState == dfuDNBUSY )
