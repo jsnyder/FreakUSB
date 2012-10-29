@@ -354,10 +354,14 @@ void dfu_req_handler(req_t *req)
             if( dfu_status.bState == dfuDNLOAD_SYNC )
             {
                 if( need_to_write == 0 )
+                {
                     dfu_status.bState=dfuDNLOAD_IDLE;
+                    dfu_status.bwPollTimeout0 = 0x00;
+                }
                 else
                 {
                 	dfu_status.bState=dfuDNBUSY;
+                    dfu_status.bwPollTimeout0 = 0xFF;  
                 }
             }
             else if( dfu_status.bState == dfuDNBUSY )
@@ -505,19 +509,20 @@ void dfu_reg_rx_handler(void (*rx)())
 void dfu_init()
 {
     U32 *target_boot_address = (U32*)flash_target;
+    U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
     // If the watchdog, software, pmu or RTC rest us, boot the image
-    if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_WDT_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_PMU_WAKEUP_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_RTC0_RESET) ||
-        (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_CMP0_RESET))
+    if ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) || // watchdog
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_WAKERF_MASK) || // pmu wakeup
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_RTC0RF_MASK) || // rtc0 reset
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_CMP0RF_MASK)) // comparator reset
     {
-        if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
-            || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
-        {
-            // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
-            // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
-            // SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
+        // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
+        // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
+        // SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
 
+        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
+            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
+        {
             boot_image();
         }
     }
@@ -527,10 +532,10 @@ void dfu_init()
         boot_image();
 
     // For software resets, extend the DFU countdown
-    if( SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) == SI32_SW_RESET )
+    if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
     {
-        if ((SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_POWER_ON_RESET)
-            || (SI32_RSTSRC_A_get_last_reset_source(SI32_RSTSRC_0) != SI32_VDD_MON_RESET))
+        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
+            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
         {
             dfu_reset_counter = 300;
         }
@@ -538,7 +543,7 @@ void dfu_init()
 
     // Otherwise prep for loading
     dfu_status.bStatus = OK;
-    dfu_status.bwPollTimeout0 = 0xFF;  
+    dfu_status.bwPollTimeout0 = 0x00;  
     dfu_status.bwPollTimeout1 = 0x00;  
     dfu_status.bwPollTimeout2 = 0x00;  
     dfu_status.bState = dfuIDLE;
