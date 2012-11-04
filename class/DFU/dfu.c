@@ -370,10 +370,26 @@ void dfu_req_handler(req_t *req)
                     dfu_status.bState=dfuDNLOAD_SYNC;
             }
             else if( dfu_status.bState == dfuMANIFEST_SYNC)
+            {
             	dfu_status.bState=dfuMANIFEST;
+                dfu_status.bwPollTimeout0 = 0xFF;
+            }
             else if( dfu_status.bState == dfuMANIFEST &&
                      need_to_write == 0)
+            {
+                // Finish erasing flash
+                while( flash_target < SI32_MCU_FLASH_SIZE)
+                {
+                    flash_key_mask = 0x01;
+                    if( 0 != flash_erase( flash_target, 1 ) )
+                    {
+                        dfu_status.bState  = dfuERROR;
+                        dfu_status.bStatus = errERASE;
+                    }
+                    flash_target += BLOCK_SIZE_U8;
+                }
                 dfu_status.bState=dfuMANIFEST_WAIT_RESET;
+            }
 
             for (i=0; i<STATUS_SZ; i++)
             {

@@ -204,6 +204,7 @@ CFLAGS += -O$(OPT)
 CFLAGS += -D__NEWLIB__
 CFLAGS += -DUSE_DFU_CLASS
 CFLAGS += -D__USE_CMSIS
+CFLAGS += -DSI32_MCU_SIM3U16X
 #CFLAGS += -funsigned-char
 #CFLAGS += -funsigned-bitfields
 #CFLAGS += -fpack-struct
