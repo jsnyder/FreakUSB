@@ -142,14 +142,17 @@ void usb_poll()
                 // get the ep number of any fifo with pending tx data
                 if ((ep_num = usb_buf_data_pending(DIR_IN)) != 0xFF)
                 {
+                    int ret;
                     // disable the interrupts while we're handling endpoint data
                     // or else we might get data coming into the fifo from a non-USB related interrupt
                     // as we're reading it out of the fifo.
                     hw_intp_disable();
-                    ep_write(ep_num);
+                    ret = ep_write(ep_num);
                     hw_intp_enable();
-                }
-                pcb.flags &= ~(1<<TX_DATA_AVAIL);
+                    if(ret == 1)
+                        pcb.flags &= ~(1<<TX_DATA_AVAIL);
+                } else
+                    pcb.flags &= ~(1<<TX_DATA_AVAIL);
             }
         }
     }
