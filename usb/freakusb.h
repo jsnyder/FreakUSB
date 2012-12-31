@@ -241,7 +241,7 @@ void ctrl_handler();
 void ep_init();
 void ep_select(U8 ep_num);
 void ep_write_from_flash(U8 ep_num, U8 *data, U8 len);
-U8 ep_write(U8 ep_num);
+void ep_write(U8 ep_num);
 void ep_write_ctrl(U8 *data, U8 len, bool read_from_flash);
 void ep_read(U8 ep_num);
 void ep_set_addr(U8 addr);

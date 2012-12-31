@@ -244,7 +244,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
 /**************************************************************************/
 
 U8 ongoing_write = 0;
-U8 ep_write(U8 ep_num)
+void ep_write(U8 ep_num)
 {
     U8 i, ep_size, len;
     usb_pcb_t *pcb = usb_pcb_get();
@@ -285,18 +285,15 @@ U8 ep_write(U8 ep_num)
         }
         else
         {
-            int timer = 0;
-
+            int timer;
             if( ep_dir_get( ep_num )  == DIR_OUT )
-                return 1;
+                return;
 
             // JEFF TESTING: Return immediately if our endpoint is not ready. This should never be the case
             // unless the endpoint is hung. We are not sending that much data so something must be wrong.
             // Also add a timer to the fifo_empty function at the end to eliminate endless loop on USB error.
-            if(!SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] ))
-                return 0;
             if( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK )
-                return 0;
+                return;
 
             // Make sure we're free to write
             //while( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK );
@@ -317,11 +314,11 @@ U8 ep_write(U8 ep_num)
             SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
 
-            //while( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] )  && timer < 500)
-            //    timer++;
+            timer = 0;
+            while( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] )  && timer < 500)
+                timer++;
         }
     }
-    return 1;
 }
 
 /**************************************************************************/
