@@ -65,10 +65,13 @@ U8 usb_buf_read(U8 ep_num)
 {
     usb_pcb_t *pcb = usb_pcb_get();
     U8 data;
+    if(pcb->fifo[ep_num].wr_ptr == pcb->fifo[ep_num].rd_ptr)
+        printf("BUFFER UNDERRUN\n");
 
     data    = pcb->fifo[ep_num].buf[pcb->fifo[ep_num].rd_ptr];
-    pcb->fifo[ep_num].rd_ptr = (pcb->fifo[ep_num].rd_ptr + 1) % MAX_BUF_SZ;
-    pcb->fifo[ep_num].len--;
+    pcb->fifo[ep_num].rd_ptr = (pcb->fifo[ep_num].rd_ptr + 1) % (MAX_BUF_SZ + 1);
+//    pcb->fifo[ep_num].len--;
+    pcb->fifo[ep_num].len = (pcb->fifo[ep_num].wr_ptr + MAX_BUF_SZ + 1 - pcb->fifo[ep_num].rd_ptr) % (MAX_BUF_SZ + 1);
     return data;
 }
 
@@ -80,13 +83,22 @@ U8 usb_buf_read(U8 ep_num)
     will roll over to zero.
 */
 /**************************************************************************/
-void usb_buf_write(U8 ep_num, U8 data)
+U8 usb_buf_write(U8 ep_num, U8 data)
 {
     usb_pcb_t *pcb = usb_pcb_get();
 
     pcb->fifo[ep_num].buf[pcb->fifo[ep_num].wr_ptr] = data;
-    pcb->fifo[ep_num].wr_ptr = (pcb->fifo[ep_num].wr_ptr + 1) % MAX_BUF_SZ;
-    pcb->fifo[ep_num].len++;
+    pcb->fifo[ep_num].wr_ptr = (pcb->fifo[ep_num].wr_ptr + 1) % (MAX_BUF_SZ + 1);
+//    pcb->fifo[ep_num].len++;
+    pcb->fifo[ep_num].len = (pcb->fifo[ep_num].wr_ptr + MAX_BUF_SZ + 1 - pcb->fifo[ep_num].rd_ptr) % (MAX_BUF_SZ + 1);
+    if(pcb->fifo[ep_num].wr_ptr == pcb->fifo[ep_num].rd_ptr)
+        printf("BUFFER OVERRUN\n");
+    return MAX_BUF_SZ - pcb->fifo[ep_num].len;
+}
+U8 usb_buf_space(U8 ep_num)
+{
+    usb_pcb_t *pcb = usb_pcb_get();
+    return MAX_BUF_SZ - pcb->fifo[ep_num].len;
 }
 
 /**************************************************************************/

@@ -285,13 +285,14 @@ void ep_write(U8 ep_num)
         }
         else
         {
-            int timer;
             if( ep_dir_get( ep_num )  == DIR_OUT )
                 return;
 
             // JEFF TESTING: Return immediately if our endpoint is not ready. This should never be the case
             // unless the endpoint is hung. We are not sending that much data so something must be wrong.
             // Also add a timer to the fifo_empty function at the end to eliminate endless loop on USB error.
+            if( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] ) )
+                return;
             if( SI32_USBEP_A_read_epcontrol( usb_ep[ ep_num - 1 ] ) & SI32_USBEP_A_EPCONTROL_IPRDYI_MASK )
                 return;
 
@@ -313,10 +314,6 @@ void ep_write(U8 ep_num)
             // clearing these two will send the data out
             SI32_USBEP_A_clear_in_data_underrun( usb_ep[ ep_num - 1 ] );
             SI32_USBEP_A_set_in_packet_ready( usb_ep[ ep_num - 1 ] );
-
-            timer = 0;
-            while( !SI32_USBEP_A_is_in_fifo_empty( usb_ep[ ep_num - 1 ] )  && timer < 500)
-                timer++;
         }
     }
 }
@@ -368,14 +365,14 @@ void ep_read(U8 ep_num)
             usb_buf_write(ep_num,  SI32_USBEP_A_read_fifo_u8( usb_ep[ ep_num - 1 ] ));
         }
 
-        if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] ))
-        {
+        //if ( 0==SI32_USBEP_A_read_data_count( usb_ep[ ep_num - 1 ] ))
+        //{
             // Clear overrun out overrun if it has occured
             if ( SI32_USBEP_A_has_out_data_overrun_occurred( usb_ep[ ep_num - 1 ] ) )
                 SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
 
             SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
-        }
+        //}
     }
     if (len > 0)
     {
@@ -611,7 +608,7 @@ U8 ep_intp_get_src()
   it to start receiving more data
 */
 /**************************************************************************/
-void ep_drain_fifo(U8 ep)
+/*void ep_drain_fifo(U8 ep)
 {
     U8 byte_cnt;
     usb_pcb_t *pcb = usb_pcb_get();
@@ -649,4 +646,4 @@ void ep_drain_fifo(U8 ep)
         }
 
     }
-}
+}*/

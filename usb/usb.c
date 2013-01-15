@@ -116,7 +116,7 @@ void usb_poll()
             {
                 // drain the contents of the chip's fifo into the endpoint's buffer and 
                 // clear the intp to allow it to continue receiving data
-                ep_drain_fifo(i);
+                ep_read(i);
             }
         }
 

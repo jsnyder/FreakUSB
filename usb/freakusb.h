@@ -204,7 +204,7 @@ typedef struct _usb_buffer_t
     volatile U8 len;    // this may change in an interrupt and the value would be required
     volatile U8 wr_ptr;
     volatile U8 rd_ptr;
-    U8 buf[MAX_BUF_SZ];
+    U8 buf[(MAX_BUF_SZ + 1)];
 } usb_buffer_t;
 
 // protocol control block
@@ -269,9 +269,10 @@ U8 desc_str_get_len(U8 index);
 // buf
 void usb_buf_init(U8 ep_num, U8 ep_dir);
 U8 usb_buf_read(U8 ep_num);
-void usb_buf_write(U8 ep_num, U8 data);
+U8 usb_buf_write(U8 ep_num, U8 data);
 void usb_buf_clear_fifo(U8 ep_num);
 U8 usb_buf_data_pending(U8 ep_dir);
+U8 usb_buf_space(U8 ep_num);
 
 // misc.c
 //void dbg_led_init();
