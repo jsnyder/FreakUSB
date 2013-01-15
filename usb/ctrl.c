@@ -272,6 +272,12 @@ void ctrl_handler()
     U8 i, req[CTRL_IN_REQ_SZ];
     req_t *reqp;
 
+    if(pcb->fifo[0].len < CTRL_IN_REQ_SZ)
+    {
+      printf("USB: CTRL INVALID\n");
+      return;
+    }
+
     // read out the request from the buffers
     for (i=0; i<CTRL_IN_REQ_SZ; i++)
     {

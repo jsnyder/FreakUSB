@@ -175,7 +175,7 @@ void ep0_handler( void )
 
 void usbep_handler( U8 ep_intp_num )
 {
-
+    usb_pcb_t *pcb = usb_pcb_get();
     if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
         SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
 
@@ -184,16 +184,9 @@ void usbep_handler( U8 ep_intp_num )
 
     if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
     {
-        ep_read( ep_intp_num );
-        //pcb->pending_data |= ( 1 << ep_intp_num );
         //ep_read( ep_intp_num );
+        pcb->pending_data |= ( 1 << ep_intp_num );
         return;
-    }
-
-    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.IPRDYI == 0 )
-    {
-        ep_write( ep_intp_num );
-        //return;
     }
 }
 

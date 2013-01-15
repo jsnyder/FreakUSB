@@ -147,9 +147,11 @@ void usb_poll()
                     // as we're reading it out of the fifo.
                     hw_intp_disable();
                     ep_write(ep_num);
+                    if(pcb.fifo[ep_num].len == 0)
+                        pcb.flags &= ~(1<<TX_DATA_AVAIL);
                     hw_intp_enable();
                 }
-                pcb.flags &= ~(1<<TX_DATA_AVAIL);
+                
             }
         }
     }
