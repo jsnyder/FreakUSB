@@ -452,6 +452,7 @@ void dfu_req_handler(req_t *req)
             // data is  state
             // Transition?: No State Transition
             usb_buf_write( EP_CTRL, dfu_status.bState );
+            ep_write(EP_CTRL);
         }
         break;
 
