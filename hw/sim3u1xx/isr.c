@@ -165,12 +165,6 @@ void ep0_handler( void )
         ep_read( 0 );
         return;
     }
-
-    if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
-    {
-        ep_write( 0 );
-        //return;
-    }
 }
 
 void usbep_handler( U8 ep_intp_num )
