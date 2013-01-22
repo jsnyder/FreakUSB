@@ -43,8 +43,8 @@ U8 dev_desc[] PROGMEM =
 {
         0x12,       // bLength
         DEV_DESCR,  // bDescriptorType
-        0x00,
-        0x02,       // bcdUSB: 0200 (2.0)
+        0x10,
+        0x01,       // bcdUSB: 0110 (1.1)
         0x02,       // bDeviceClass: CDC
         0x00,       // bDeviceSubClass: Get from cfg descr
         0x00,       // bDeviceProtocol: Get from cfg descr
