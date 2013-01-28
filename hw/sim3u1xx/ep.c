@@ -372,6 +372,7 @@ void ep_read(U8 ep_num)
                 SI32_USBEP_A_clear_out_data_overrun( usb_ep[ ep_num - 1 ] );
 
             SI32_USBEP_A_clear_outpacket_ready( usb_ep[ ep_num - 1 ] );
+            pcb->pending_data &= ~(1<<ep_num);
         //}
     }
     if (len > 0)
