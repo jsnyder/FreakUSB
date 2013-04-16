@@ -123,6 +123,7 @@ void usb_buf_clear_fifo(U8 ep_num)
 /**************************************************************************/
 U8 usb_buf_data_pending(U8 ep_dir)
 {
+#if(NUM_EPS > 1) //Do not check data endpoints if we only define 1 control endpoint
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
 
@@ -134,5 +135,6 @@ U8 usb_buf_data_pending(U8 ep_dir)
             return i;
         }
     }
+#endif
     return 0xFF;
 }
