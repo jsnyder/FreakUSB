@@ -94,7 +94,7 @@ _write(int fd, const void *data, unsigned int count)
     return(count);
 }
 
-int _write_r(void *reent, int fd, char *ptr, size_t len)
+/*int _write_r(void *reent, int fd, char *ptr, size_t len)
 {
 	size_t i;
 
@@ -103,7 +103,7 @@ int _write_r(void *reent, int fd, char *ptr, size_t len)
         cdc_demo_putchar(ptr[i], NULL);
 	}
 	return len;
-}
+}*/
 
 
 int

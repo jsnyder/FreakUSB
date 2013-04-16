@@ -1,0 +1,6 @@
+#!/bin/bash
+make
+mv main.hex dfu_pcbv7.hex
+mv main.bin dfu_pcbv7.bin
+echo Build completed. Please transfer via JTAG
+

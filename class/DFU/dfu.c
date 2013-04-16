@@ -544,8 +544,9 @@ void dfu_init()
         }
     }
 
-    // Boot if 3.8 is low
-    if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) == 0 )
+    // Boot if 3.8 is low for version 1 through 6 PCB's
+    // Boot if 3.9 is low for version 7+ PCB's
+    if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 9 ) ) == 0 )
         boot_image();
 
     // For software resets, extend the DFU countdown
