@@ -8,6 +8,15 @@
 #define STDOUT_FILENO 1 /* standard output file descriptor */
 #define STDERR_FILENO 2 /* standard error file descriptor */
 
+void abort()
+{
+	int n = 0;
+	while(1)
+	{
+		n = n;
+	}
+}
+
 void 
 _exit(int n)
 {

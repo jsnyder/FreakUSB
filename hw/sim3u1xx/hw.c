@@ -40,6 +40,7 @@
 #include "sim3u1xx_Types.h"
 #include "freakusb.h"
 #include "types.h"
+#include "platform_conf.h"
 
 /**************************************************************************/
 /*!
@@ -181,6 +182,35 @@ void hw_init()
                            
 
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+
+#ifdef PCB_V7
+  int pcb_v7_is_defined; //Will show a compiler warning to note hardware version 
+  // Setup PBHD4
+  SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
+  SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
+
+  SI32_PBHD_A_select_pin0_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin1_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin2_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin3_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin4_safe_state(SI32_PBHD_4, 0x0);
+  SI32_PBHD_A_select_pin5_safe_state(SI32_PBHD_4, 0x0);
+
+  SI32_PBHD_A_enable_bias(SI32_PBHD_4);
+  SI32_PBHD_A_select_normal_power_port_mode(SI32_PBHD_4);
+  SI32_PBHD_A_enable_drivers(SI32_PBHD_4);
+
+  //Setup PB4.3 LED0/1
+  //Setup PB4.2 to LOW to turn on mosfets for bat charger!
+  SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x000C );
+  SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
+  SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
+  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+#else
+  int pcb_v5_is_defined; //Will show a compiler warning to note hardware version 
+#endif
+
+
 
 
   /* --------------------- */

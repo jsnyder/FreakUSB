@@ -169,7 +169,7 @@ void ep0_handler( void )
 
 void usbep_handler( U8 ep_intp_num )
 {
-    usb_pcb_t *pcb = usb_pcb_get();
+    //usb_pcb_t *pcb = usb_pcb_get();
     if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
         SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
 

@@ -44,8 +44,8 @@
 #include "hw.h"
 #include "dfu.h"
 
-static U8 msg[MAX_MSG_SIZE];
-static U8 *msg_ptr = msg;
+//static U8 msg[MAX_MSG_SIZE];
+//static U8 *msg_ptr = msg;
 
 
 

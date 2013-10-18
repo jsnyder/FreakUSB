@@ -544,10 +544,15 @@ void dfu_init()
         }
     }
 
-    // Boot if 3.8 is low for version 1 through 6 PCB's
+#ifdef PCB_V7
     // Boot if 3.9 is low for version 7+ PCB's
     if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 9 ) ) == 0 )
         boot_image();
+#else
+    // Boot if 3.8 is low for version 1 through 6 PCB's
+    if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) == 0 )
+        boot_image();
+#endif
 
     // For software resets, extend the DFU countdown
     if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
@@ -555,7 +560,7 @@ void dfu_init()
         if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
             || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
         {
-            dfu_reset_counter = 300;
+            dfu_reset_counter = 30;
         }
     }
 

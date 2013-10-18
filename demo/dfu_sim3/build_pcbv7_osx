@@ -1,6 +1,8 @@
 #!/bin/bash
-make
+make clean
+make EXTRA_DEFINES="-DPCB_V7"
 mv main.hex dfu_pcbv7.hex
 mv main.bin dfu_pcbv7.bin
+mv main.elf dfu_pcbv7.elf
 echo Build completed. Please transfer via JTAG
 
