@@ -29,6 +29,7 @@
 
     Originally written by Christopher Wang aka Akiba.
     Please post support questions to the FreakLabs forum.
+
 *******************************************************************/
 
 /* *****************************************************************************
@@ -55,6 +56,11 @@
  * THE SOFTWARE.
  * ****************************************************************************/
 
+/*!
+    \file dfu.h
+    \ingroup dfu_class
+*/
+/*******************************************************************/
 #ifndef DFU_H
 #define DFU_H
 #include "types.h"
