@@ -40,7 +40,6 @@
 #include "sim3u1xx_Types.h"
 #include "freakusb.h"
 #include "types.h"
-#include "platform_conf.h"
 
 /**************************************************************************/
 /*!
@@ -206,6 +205,20 @@ void hw_init()
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+
+
+  SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
+
+  // Setup PB2
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
+  // PB2.1 is wakeup
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
+
+  // Setup PB3 
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
+  //PB3.9 is usb voltage detection
+  SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000200);
+
 #else
   int pcb_v5_is_defined; //Will show a compiler warning to note hardware version 
 #endif
