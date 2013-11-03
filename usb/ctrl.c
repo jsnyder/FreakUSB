@@ -274,7 +274,9 @@ void ctrl_handler()
 
     if(pcb->fifo[0].len < CTRL_IN_REQ_SZ)
     {
+#ifdef DEBUG_USB
       printf("USB: CTRL INVALID\n");
+#endif
       return;
     }
 
