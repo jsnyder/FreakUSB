@@ -324,7 +324,7 @@ EXTMEMOPTS =
 #    --cref:    add cross reference to  map file
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
 LDFLAGS += -nostartfiles -nostdlib
-LDFLAGS += -T ../../hw/sim3u1xx/sim3u1xx.ld
+LDFLAGS += -T ../../hw/sim3u1xx/sim3u1xx_bl.ld
 LDFLAGS += -Wl,--gc-sections -Wl,--allow-multiple-definition
 LDFLAGS += -Wl,-static
 LDFLAGS += $(EXTMEMOPTS)
