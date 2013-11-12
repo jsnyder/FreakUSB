@@ -77,6 +77,8 @@
 #include "sim3u1xx_Types.h"
 
 
+#define FLASH_TARGET 0x3000
+
 // Watchdog timer
 #define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
                                              // periodic early warning interrupt
@@ -100,7 +102,7 @@ static void (*rx_handler)();
 
 uint32_t flash_buffer[BLOCK_SIZE_U32];
 uint32_t* flash_buffer_ptr = flash_buffer;
-uint32_t flash_target = 0x3000;
+uint32_t flash_target = FLASH_TARGET;
 
 
 volatile U8 flash_key_mask  = 0x00;
@@ -113,20 +115,23 @@ void boot_image( void )
     volatile uint32_t jumpaddr;
     void (*app_fn)(void) = NULL;
 
-    // prepare jump address
-    jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
-    // prepare jumping function
-    app_fn = (void (*)(void)) jumpaddr;
+    if ( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
+    {
+        // prepare jump address
+        jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
+        // prepare jumping function
+        app_fn = (void (*)(void)) jumpaddr;
 
-    NVIC_DisableIRQ( USB0_IRQn );
+        NVIC_DisableIRQ( USB0_IRQn );
 
-    SCB->VTOR = 0x3000;
+        SCB->VTOR = 0x3000;
 
-    // initialize user application's stack pointer
-    __set_MSP(*(volatile uint32_t*) 0x3000);
+        // initialize user application's stack pointer
+        __set_MSP(*(volatile uint32_t*) 0x3000);
 
-    // jump.
-    app_fn();
+        // jump.
+        app_fn();
+    }
 }
 
 
@@ -614,7 +619,7 @@ void dfu_init()
                                            SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
 
 
-    if( *target_boot_address != 0xFFFFFFFF )
+    if( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
     {
         // Setup Watchdog Timer
         SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
