@@ -99,6 +99,7 @@ DFUStatus dfu_status;
 // this is the rx handler callback function. it gets registered by the application program
 // and will handle any incoming data.
 static void (*rx_handler)();
+void enable_watchdog( void );
 
 uint32_t flash_buffer[BLOCK_SIZE_U32];
 uint32_t* flash_buffer_ptr = flash_buffer;
@@ -501,8 +502,26 @@ void dfu_req_handler(req_t *req)
             // wvalue is zero
             // wlength is 0
             // data is none
-            dfu_status.bStatus = OK;
-            dfu_status.bState = dfuIDLE;
+            if( dfu_status.bState == dfuIDLE )
+            {
+                dfu_status.bStatus = OK;
+                dfu_status.bState = dfuIDLE;
+            }
+            else if ( dfu_status.bState == dfuDNLOAD_IDLE )
+            {
+                flash_key_mask = 0x01;
+                flash_target = FLASH_TARGET;
+                if( 0 != flash_erase( flash_target, 1 ) )
+                {
+                    dfu_status.bState  = dfuERROR;
+                    dfu_status.bStatus = errERASE;
+                }
+                flash_key_mask = 0x01;
+                dfu_status.bStatus = OK;
+                dfu_status.bState = dfuIDLE;
+                SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
+                ep_send_zlp(EP_CTRL);
+            }
         }
         break;
 
@@ -554,7 +573,25 @@ void dfu_reg_rx_handler(void (*rx)())
     }
 }
 
+void enable_watchdog( void )
+{
+    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
 
+    // Enable Watchdog Timer
+    SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
+
+    /// Enable Watchdog Interrupt
+    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+    NVIC_EnableIRQ(WDTIMER0_IRQn);
+    SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
+
+    SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+}
 
 /**************************************************************************/
 /*!
@@ -621,23 +658,7 @@ void dfu_init()
 
     if( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
     {
-        // Setup Watchdog Timer
-        SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-        SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
-        while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-        SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
-        while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-        SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
-
-        // Enable Watchdog Timer
-        SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
-
-        /// Enable Watchdog Interrupt
-        NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
-        NVIC_EnableIRQ(WDTIMER0_IRQn);
-        SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
-
-        SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+        enable_watchdog();
     }
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
