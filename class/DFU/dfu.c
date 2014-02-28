@@ -617,9 +617,10 @@ void enable_watchdog( void )
 /**************************************************************************/
 void dfu_init()
 {
-    usb_pcb_t *pcb = usb_pcb_get();
     U32 *target_boot_address = (U32*)flash_target;
     U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
+    U32 pmu_status = SI32_PMU_0->STATUS.U32;
+
     // If the watchdog, software, pmu or RTC rest us, boot the image
     if ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) || // watchdog
         (reset_status & SI32_RSTSRC_A_RESETFLAG_WAKERF_MASK) || // pmu wakeup
@@ -637,6 +638,10 @@ void dfu_init()
         }
     }
 
+    if( pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK )
+        boot_image();
+
+
 // #ifdef PCB_V7
 //     // Boot if 3.9 is low for version 7+ PCB's
 //     if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 9 ) ) == 0 )
@@ -648,8 +653,6 @@ void dfu_init()
 // #endif
     if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
         boot_image();
-    else
-        pcb->connected = true;
 
     // For software resets, extend the DFU countdown
     if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )

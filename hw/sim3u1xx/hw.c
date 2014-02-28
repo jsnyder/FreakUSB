@@ -135,10 +135,13 @@ void mySystemInit()
   SI32_CLKCTRL_A_enable_apb_to_modules_0 (SI32_CLKCTRL_0, SI32_CLKCTRL_A_APBCLKG0_PB0CEN_MASK);
   // make the SWO pin (PB1.3) push-pull to enable SWV printf
   //SI32_PBSTD_A_set_pins_push_pull_output (SI32_PBSTD_1, (1<<3));
+
 }
 
 void hw_init()
 {  
+  usb_pcb_t *pcb = usb_pcb_get();
+
   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PLL0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_PB0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART0CEN_DISABLED_U32 |
@@ -176,9 +179,12 @@ void hw_init()
                                 SI32_CLKCTRL_A_AHBCLKG_FLASHCEN_ENABLED_U32 |
                                 SI32_CLKCTRL_A_AHBCLKG_EMIF0CEN_DISABLED_U32 |
                                 SI32_CLKCTRL_A_AHBCLKG_USB0BCEN_ENABLED_U32;
-                           
 
-  SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+
+SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);                  
+SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
+
+SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
 #if defined( PCB_V7 )
@@ -281,6 +287,9 @@ void hw_init()
   NVIC_EnableIRQ (USB0_IRQn);
 
   SI32_USB_A_enable_module( SI32_USB_0 );
+
+  if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
+    pcb->connected = true;
 }
 
 /**************************************************************************/
