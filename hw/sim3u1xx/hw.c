@@ -138,11 +138,9 @@ void mySystemInit()
 }
 
 void hw_init()
-{
-  usb_pcb_t *pcb = usb_pcb_get();
-  
+{  
   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PLL0CEN_ENABLED_U32 |
-                                 SI32_CLKCTRL_A_APBCLKG0_PB0CEN_DISABLED_U32 |
+                                 SI32_CLKCTRL_A_APBCLKG0_PB0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART0CEN_DISABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART1CEN_DISABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_UART0CEN_DISABLED_U32 |
@@ -212,17 +210,14 @@ void hw_init()
 #if defined( PCB_V8 )
   //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
+  //Setup PB0.4 LED0
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, ( uint32_t ) 1 << 4);
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
 #else
   //Setup PB4.3 LED0/1
   //Setup PB4.2 to LOW to turn on mosfets for bat charger!
   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-#endif
-
-#if defined( PCB_V8 )
-  //Setup PB0.4 LED0
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, ( uint32_t ) 1 << 4);
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
 #endif
 
 
@@ -286,8 +281,6 @@ void hw_init()
   NVIC_EnableIRQ (USB0_IRQn);
 
   SI32_USB_A_enable_module( SI32_USB_0 );
-
-  pcb->connected = true;
 }
 
 /**************************************************************************/

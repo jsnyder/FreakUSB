@@ -270,12 +270,28 @@ void wait_ms_using_usb(U32 delay_amount)
       }
    }
 }
-
+volatile uint8_t toggle = 1;
 void dfu_req_handler(req_t *req)
 {
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
 
+#if defined( PCB_V8 )
+    // Toggle PB0.4 LED0
+    if( toggle ) 
+        SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+    else
+        SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+#else
+    // Toggle PB4.3 LED0
+    if( toggle ) 
+          SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+    else
+          SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+#endif
+
+    toggle ^= 1;
+    
     switch (req->req)
     {
     case DFU_DETACH:
@@ -601,6 +617,7 @@ void enable_watchdog( void )
 /**************************************************************************/
 void dfu_init()
 {
+    usb_pcb_t *pcb = usb_pcb_get();
     U32 *target_boot_address = (U32*)flash_target;
     U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
     // If the watchdog, software, pmu or RTC rest us, boot the image
@@ -631,6 +648,8 @@ void dfu_init()
 // #endif
     if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
         boot_image();
+    else
+        pcb->connected = true;
 
     // For software resets, extend the DFU countdown
     if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
