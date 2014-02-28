@@ -591,6 +591,9 @@ void dfu_reg_rx_handler(void (*rx)())
 
 void enable_watchdog( void )
 {
+    SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
+                                           SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
+
     SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
     SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
     while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
@@ -627,9 +630,6 @@ void dfu_init()
         (reset_status & SI32_RSTSRC_A_RESETFLAG_RTC0RF_MASK) || // rtc0 reset
         (reset_status & SI32_RSTSRC_A_RESETFLAG_CMP0RF_MASK)) // comparator reset
     {
-        // SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x000000400);
-        // SI32_PBCFG_A_enable_crossbar_1(SI32_PBCFG_0);
-        // SI32_PBSTD_A_write_pins_low (SI32_PBSTD_2, 0x000000400);
 
         if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
             || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
@@ -641,16 +641,6 @@ void dfu_init()
     if( pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK )
         boot_image();
 
-
-// #ifdef PCB_V7
-//     // Boot if 3.9 is low for version 7+ PCB's
-//     if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 9 ) ) == 0 )
-//         boot_image();
-// #else
-//     // Boot if 3.8 is low for version 1 through 6 PCB's
-//     if( ( SI32_PBSTD_A_read_pins( SI32_PBSTD_3 ) & ( 1 << 8 ) ) == 0 )
-//         boot_image();
-// #endif
     if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
         boot_image();
 
@@ -672,19 +662,11 @@ void dfu_init()
     dfu_status.bState = dfuIDLE;
     dfu_status.iString = 0x00;          /* all strings must be 0x00 until we make them! */
 
-    // Enable Watchdog Timer
-    // ENABLE CLOCK
-    SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
-                                           SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
-
-
     if( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
     {
         enable_watchdog();
     }
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
-
-
 }
 
