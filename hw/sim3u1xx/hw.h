@@ -57,5 +57,7 @@ void hw_init();
 void hw_intp_disable();
 void hw_intp_enable();
 U8 hw_flash_get_byte(U8 *addr);
+U8 hw_flash_erase( U32 address, U8 verify);
+U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify );
 
 #endif

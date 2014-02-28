@@ -392,8 +392,8 @@ void ep_send_zlp(U8 ep_num)
 {
     if( ep_num == 0 )
     {
-        SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
         SI32_USB_A_clear_out_packet_ready_ep0( SI32_USB_0 );
+        SI32_USB_A_set_data_end_ep0( SI32_USB_0 );
     }
 }
 

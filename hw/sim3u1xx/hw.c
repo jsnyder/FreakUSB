@@ -303,6 +303,107 @@ U8 hw_flash_get_byte(U8 *addr)
     return ( U8 )*addr;
 }
 
+volatile U8 flash_key_mask  = 0x00;
+volatile U8 armed_flash_key = 0x00;
+
+U8 hw_flash_erase( U32 address, U8 verify)
+{
+    flash_key_mask = 0x01;
+
+    // Write the address of the Flash page to WRADDR
+    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
+    // Enter Flash Erase Mode
+    SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
+
+    // Disable interrupts
+    hw_intp_disable();
+
+    // Unlock the flash interface for a single access
+    armed_flash_key = flash_key_mask ^ 0xA4;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = flash_key_mask ^ 0xF0;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = 0;
+
+    // Write any value to initiate a page erase.
+    SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0xA5);
+
+    // Wait for flash operation to complete
+    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0));
+
+    if( verify )
+    {
+        address &= ~(FLASH_PAGE_SIZE_U8 - 1); // Round down to nearest even page address
+        U32* verify_address = (U32*)address;
+
+        for( U32 wc = FLASH_PAGE_SIZE_U32; wc != 0; wc-- )
+        {
+            if ( *verify_address != 0xFFFFFFFF )
+                return 1;
+
+            verify_address++;
+        }
+    }
+
+    hw_intp_enable();
+
+    return 0;
+}
+
+
+U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify )
+{
+    U32* tmpdata = data;
+    flash_key_mask = 0x01;
+
+    // Write the address of the Flash page to WRADDR
+    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
+    // Enter flash erase mode
+    SI32_FLASHCTRL_A_exit_flash_erase_mode(SI32_FLASHCTRL_0);
+
+    // disable interrupts
+    hw_intp_disable();
+
+    // Unlock flash interface for multiple accesses
+    armed_flash_key = flash_key_mask ^ 0xA4;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = flash_key_mask ^ 0xF3;
+    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
+    armed_flash_key = 0;
+
+    // Write word-sized
+    for( U32 wc = count; wc != 0; wc-- )
+    {
+        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
+        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
+        data++;
+    }
+
+    // Relock flash interface
+    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, 0x5A );
+
+    // Wait for flash operation to complete
+    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) );
+
+    if( verify )
+    {
+        U32* verify_address = (U32*)address;
+
+        for( U32 wc = count; wc != 0; wc-- )
+        {
+            if (*verify_address != *tmpdata++)
+                return 1;
+
+            verify_address++;
+        }
+    }
+
+    // re-enable interrupts
+    hw_intp_enable();
+
+    return 0;
+}
+
 /**************************************************************************/
 /*!
     Disable global interrupts

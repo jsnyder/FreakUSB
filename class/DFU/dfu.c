@@ -106,8 +106,7 @@ uint32_t* flash_buffer_ptr = flash_buffer;
 uint32_t flash_target = FLASH_TARGET;
 
 
-volatile U8 flash_key_mask  = 0x00;
-volatile U8 armed_flash_key = 0x00;
+
 volatile U8 need_to_write = 0;
 volatile U8 dfu_communication_started = 0;
 
@@ -133,102 +132,6 @@ void boot_image( void )
         // jump.
         app_fn();
     }
-}
-
-
-U8 flash_erase( U32 address, U8 verify)
-{
-    // Write the address of the Flash page to WRADDR
-    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
-    // Enter Flash Erase Mode
-    SI32_FLASHCTRL_A_enter_flash_erase_mode( SI32_FLASHCTRL_0 );
-
-    // Disable interrupts
-    hw_intp_disable();
-
-    // Unlock the flash interface for a single access
-    armed_flash_key = flash_key_mask ^ 0xA4;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = flash_key_mask ^ 0xF0;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = 0;
-
-    // Write any value to initiate a page erase.
-    SI32_FLASHCTRL_A_write_wrdata(SI32_FLASHCTRL_0, 0xA5);
-
-    // Wait for flash operation to complete
-    while (SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0));
-
-    if( verify )
-    {
-        address &= ~(FLASH_PAGE_SIZE_U8 - 1); // Round down to nearest even page address
-        U32* verify_address = (U32*)address;
-
-        for( U32 wc = FLASH_PAGE_SIZE_U32; wc != 0; wc-- )
-        {
-            if ( *verify_address != 0xFFFFFFFF )
-                return 1;
-
-            verify_address++;
-        }
-    }
-
-    hw_intp_enable();
-
-    return 0;
-}
-
-
-U8 flash_write( U32 address, U32* data, U32 count, U8 verify )
-{
-    U32* tmpdata = data;
-
-    // Write the address of the Flash page to WRADDR
-    SI32_FLASHCTRL_A_write_wraddr( SI32_FLASHCTRL_0, address );
-    // Enter flash erase mode
-    SI32_FLASHCTRL_A_exit_flash_erase_mode(SI32_FLASHCTRL_0);
-
-    // disable interrupts
-    hw_intp_disable();
-
-    // Unlock flash interface for multiple accesses
-    armed_flash_key = flash_key_mask ^ 0xA4;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = flash_key_mask ^ 0xF3;
-    SI32_FLASHCTRL_A_write_flash_key(SI32_FLASHCTRL_0, armed_flash_key);
-    armed_flash_key = 0;
-
-    // Write word-sized
-    for( U32 wc = count; wc != 0; wc-- )
-    {
-        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
-        SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
-        data++;
-    }
-
-    // Relock flash interface
-    SI32_FLASHCTRL_A_write_flash_key( SI32_FLASHCTRL_0, 0x5A );
-
-    // Wait for flash operation to complete
-    while( SI32_FLASHCTRL_A_is_flash_busy(SI32_FLASHCTRL_0 ) );
-
-    if( verify )
-    {
-        U32* verify_address = (U32*)address;
-
-        for( U32 wc = count; wc != 0; wc-- )
-        {
-            if (*verify_address != *tmpdata++)
-                return 1;
-
-            verify_address++;
-        }
-    }
-
-    // re-enable interrupts
-    hw_intp_enable();
-
-    return 0;
 }
 
 /**************************************************************************/
@@ -312,7 +215,6 @@ void dfu_req_handler(req_t *req)
             // wvalue is wBlockNum
             // wlength is Length
             // data is firmware
-            flash_key_mask = 0x01;
 
 
 
@@ -326,7 +228,6 @@ void dfu_req_handler(req_t *req)
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errNOTDONE;
-                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
                     ep_send_zlp(EP_CTRL);
                     return;
                 }
@@ -346,7 +247,6 @@ void dfu_req_handler(req_t *req)
                         //flash_buffer_ptr = flash_buffer;
                     }
                     dfu_status.bState  = dfuMANIFEST_SYNC;
-                    SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
                     ep_send_zlp(EP_CTRL);
                     return;
                 }
@@ -436,8 +336,7 @@ void dfu_req_handler(req_t *req)
                 // Finish erasing flash
                 while( flash_target < SI32_MCU_FLASH_SIZE)
                 {
-                    flash_key_mask = 0x01;
-                    if( 0 != flash_erase( flash_target, 1 ) )
+                    if( 0 != hw_flash_erase( flash_target, 1 ) )
                     {
                         dfu_status.bState  = dfuERROR;
                         dfu_status.bStatus = errERASE;
@@ -463,14 +362,12 @@ void dfu_req_handler(req_t *req)
 
             if( need_to_write )
             {
-                flash_key_mask = 0x01;
-                if( 0 != flash_erase( flash_target, 1 ) )
+                if( 0 != hw_flash_erase( flash_target, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errERASE;
                 }
-                flash_key_mask = 0x01;
-                if( 0 != flash_write( flash_target, ( U32* )flash_buffer, flash_buffer_ptr - flash_buffer, 1 ) )
+                if( 0 != hw_flash_write( flash_target, ( U32* )flash_buffer, flash_buffer_ptr - flash_buffer, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errVERIFY;
@@ -525,17 +422,14 @@ void dfu_req_handler(req_t *req)
             }
             else if ( dfu_status.bState == dfuDNLOAD_IDLE )
             {
-                flash_key_mask = 0x01;
                 flash_target = FLASH_TARGET;
-                if( 0 != flash_erase( flash_target, 1 ) )
+                if( 0 != hw_flash_erase( flash_target, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errERASE;
                 }
-                flash_key_mask = 0x01;
                 dfu_status.bStatus = OK;
                 dfu_status.bState = dfuIDLE;
-                SI32_USB_A_clear_out_packet_ready_ep0(SI32_USB_0);
                 ep_send_zlp(EP_CTRL);
             }
         }
