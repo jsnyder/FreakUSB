@@ -404,6 +404,74 @@ U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify )
     return 0;
 }
 
+
+
+void hw_enable_watchdog( void )
+{
+    SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
+                                           SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
+
+    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
+    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
+    SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
+
+    // Enable Watchdog Timer
+    SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
+
+    /// Enable Watchdog Interrupt
+    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+    NVIC_EnableIRQ(WDTIMER0_IRQn);
+    SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
+
+    SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+}
+
+void hw_boot_image( void )
+{
+    volatile uint32_t jumpaddr;
+    void (*app_fn)(void) = NULL;
+
+    if ( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
+    {
+        // prepare jump address
+        jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
+        // prepare jumping function
+        app_fn = (void (*)(void)) jumpaddr;
+
+        NVIC_DisableIRQ( USB0_IRQn );
+
+        SCB->VTOR = 0x3000;
+
+        // initialize user application's stack pointer
+        __set_MSP(*(volatile uint32_t*) 0x3000);
+
+        // jump.
+        app_fn();
+    }
+}
+
+volatile uint8_t toggle = 1;
+void hw_activity_indicator( void )
+{
+#if defined( PCB_V8 )
+  // Toggle PB0.4 LED0
+  if( toggle ) 
+      SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+  else
+      SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+#else
+  // Toggle PB4.3 LED0
+  if( toggle ) 
+        SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+  else
+        SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+#endif
+  toggle ^= 1;
+}
+
 /**************************************************************************/
 /*!
     Disable global interrupts

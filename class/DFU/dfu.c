@@ -76,63 +76,20 @@
 #include "sim3u1xx.h"
 #include "sim3u1xx_Types.h"
 
-
-#define FLASH_TARGET 0x3000
-
-// Watchdog timer
-#define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
-                                             // periodic early warning interrupt
-
 volatile U16 dfu_reset_counter = 10;         // 10 warnings are allowed
-
-#define RESET_DELAY_MS                2000  // Will result in approx a 2 s
-                                            // reset delay (if early warning isn't captured)
-
-#define EARLY_WARNING_THRESHOLD       (uint32_t)((16400*EARLY_WARNING_DELAY_MS)/1000)
-                                      
-#define RESET_THRESHOLD               (uint32_t)((16400*RESET_DELAY_MS)/1000)
-
-
 
 DFUStatus dfu_status;
 
 // this is the rx handler callback function. it gets registered by the application program
 // and will handle any incoming data.
 static void (*rx_handler)();
-void enable_watchdog( void );
 
 uint32_t flash_buffer[BLOCK_SIZE_U32];
 uint32_t* flash_buffer_ptr = flash_buffer;
 uint32_t flash_target = FLASH_TARGET;
 
-
-
 volatile U8 need_to_write = 0;
 volatile U8 dfu_communication_started = 0;
-
-void boot_image( void )
-{
-    volatile uint32_t jumpaddr;
-    void (*app_fn)(void) = NULL;
-
-    if ( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
-    {
-        // prepare jump address
-        jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
-        // prepare jumping function
-        app_fn = (void (*)(void)) jumpaddr;
-
-        NVIC_DisableIRQ( USB0_IRQn );
-
-        SCB->VTOR = 0x3000;
-
-        // initialize user application's stack pointer
-        __set_MSP(*(volatile uint32_t*) 0x3000);
-
-        // jump.
-        app_fn();
-    }
-}
 
 /**************************************************************************/
 /*!
@@ -173,27 +130,13 @@ void wait_ms_using_usb(U32 delay_amount)
       }
    }
 }
-volatile uint8_t toggle = 1;
+
 void dfu_req_handler(req_t *req)
 {
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
 
-#if defined( PCB_V8 )
-    // Toggle PB0.4 LED0
-    if( toggle ) 
-        SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-    else
-        SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-#else
-    // Toggle PB4.3 LED0
-    if( toggle ) 
-          SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-    else
-          SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-#endif
-
-    toggle ^= 1;
+    hw_activity_indicator();
     
     switch (req->req)
     {
@@ -357,7 +300,7 @@ void dfu_req_handler(req_t *req)
                 wait_ms_using_usb(200);
                 SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
                 for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
-                boot_image();
+                hw_boot_image();
             }
 
             if( need_to_write )
@@ -378,8 +321,6 @@ void dfu_req_handler(req_t *req)
                 if( dfu_status.bState != dfuMANIFEST )
                     dfu_status.bState=dfuDNLOAD_SYNC;
             }
-
-
         }
         break;
 
@@ -483,28 +424,7 @@ void dfu_reg_rx_handler(void (*rx)())
     }
 }
 
-void enable_watchdog( void )
-{
-    SI32_CLKCTRL_A_enable_apb_to_modules_1(SI32_CLKCTRL_0,
-                                           SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
 
-    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
-    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-    SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
-    while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
-    SI32_WDTIMER_A_set_reset_threshold (SI32_WDTIMER_0, RESET_THRESHOLD);
-
-    // Enable Watchdog Timer
-    SI32_WDTIMER_A_start_counter(SI32_WDTIMER_0);
-
-    /// Enable Watchdog Interrupt
-    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
-    NVIC_EnableIRQ(WDTIMER0_IRQn);
-    SI32_WDTIMER_A_enable_early_warning_interrupt(SI32_WDTIMER_0);
-
-    SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
-}
 
 /**************************************************************************/
 /*!
@@ -528,15 +448,15 @@ void dfu_init()
         if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
             || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
         {
-            boot_image();
+            hw_boot_image();
         }
     }
 
     if( pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK )
-        boot_image();
+        hw_boot_image();
 
     if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
-        boot_image();
+        hw_boot_image();
 
     // For software resets, extend the DFU countdown
     if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
@@ -558,7 +478,7 @@ void dfu_init()
 
     if( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
     {
-        enable_watchdog();
+        hw_enable_watchdog();
     }
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);

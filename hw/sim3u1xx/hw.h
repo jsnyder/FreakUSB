@@ -48,6 +48,18 @@ enum
     SOFI
 };
 
+// Flash writing target
+#define FLASH_TARGET 0x3000
+
+// Watchdog timer
+#define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
+                                             // periodic early warning interrupt
+#define RESET_DELAY_MS                2000  // Will result in approx a 2 s
+                                            // reset delay (if early warning isn't captured)
+#define EARLY_WARNING_THRESHOLD       (uint32_t)((16400*EARLY_WARNING_DELAY_MS)/1000)
+#define RESET_THRESHOLD               (uint32_t)((16400*RESET_DELAY_MS)/1000)
+
+
 #define PROGMEM 
 
 #define PSTR(a) (a)
@@ -59,5 +71,8 @@ void hw_intp_enable();
 U8 hw_flash_get_byte(U8 *addr);
 U8 hw_flash_erase( U32 address, U8 verify);
 U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify );
+void hw_enable_watchdog( void );
+void hw_boot_image( void );
+void hw_activity_indicator( void );
 
 #endif

@@ -259,26 +259,9 @@ void USB0_IRQHandler( void )
 extern volatile U8 dfu_communication_started;
 extern volatile U16 dfu_reset_counter;
 
-volatile uint8_t toggle = 1;
-
 void WDTIMER0_IRQHandler(void)
 {
-
-#if defined( PCB_V8 )
-    // Toggle PB0.4 LED0
-    if( toggle ) 
-        SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-    else
-        SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-#else
-    // Toggle PB4.3 LED0
-    if( toggle ) 
-          SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-    else
-          SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-#endif
-
-    toggle ^= 1;
+    hw_activity_indicator();
 
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
