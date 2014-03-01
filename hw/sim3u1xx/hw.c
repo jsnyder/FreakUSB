@@ -546,6 +546,7 @@ int hw_check_extend_bootloader( void )
             return 1;
         }
     }
+    return 0;
 }
 
 
