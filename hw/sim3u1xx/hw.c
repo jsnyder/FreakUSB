@@ -30,6 +30,16 @@
     Originally written by Christopher Wang aka Akiba.
     Please post support questions to the FreakLabs forum.
 *******************************************************************/
+
+//------------------------------------------------------------------------------
+// Copyright (c) 2012 by Silicon Laboratories. 
+// All rights reserved. This program and the accompanying materials
+// are made available under the terms of the Silicon Laboratories End User 
+// License Agreement which accompanies this distribution, and is available at
+// http://developer.silabs.com/legal/version/v10/License_Agreement_v10.htm
+// Original content and implementation provided by Silicon Laboratories.
+//------------------------------------------------------------------------------
+
 /*!
     \defgroup hw_at90usb Hardware - AT90USB
     \file hw.c
@@ -70,6 +80,29 @@ bool SI32_USB_A_verify_clock_is_running(SI32_USB_A_Type * usb)
   }
   //printf("USB Clock is running.  clksel = %02x\n", usb->CLKSEL.U32);
   return true;
+}
+
+void hw_wait_ms(U32 delay_amount)
+{
+   U32 elapsed_time, start_time, last_time;
+
+   elapsed_time = 0;
+   start_time = SI32_USB_0->FRAME.U32;
+
+   while (elapsed_time < delay_amount)
+   {
+      // Find how much time has elapsed
+      last_time = SI32_USB_0->FRAME.U32;
+
+      if (last_time >= start_time)
+      {
+         elapsed_time = last_time - start_time;
+      }
+      else
+      {
+         elapsed_time = 2048 + last_time - start_time;
+      }
+   }
 }
 
 // void hard_fault_handler_c(unsigned int * hardfault_args)

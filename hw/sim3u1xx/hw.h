@@ -74,5 +74,6 @@ U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify );
 void hw_enable_watchdog( void );
 void hw_boot_image( void );
 void hw_activity_indicator( void );
+void hw_wait_ms(U32 delay_amount);
 
 #endif

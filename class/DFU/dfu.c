@@ -56,15 +56,6 @@
  * THE SOFTWARE.
  * ****************************************************************************/
 
-//------------------------------------------------------------------------------
-// Copyright (c) 2012 by Silicon Laboratories. 
-// All rights reserved. This program and the accompanying materials
-// are made available under the terms of the Silicon Laboratories End User 
-// License Agreement which accompanies this distribution, and is available at
-// http://developer.silabs.com/legal/version/v10/License_Agreement_v10.htm
-// Original content and implementation provided by Silicon Laboratories.
-//------------------------------------------------------------------------------
-
 /*!
     \defgroup dfu_class USB DFU Class
     \file dfu.c
@@ -107,29 +98,6 @@ volatile U8 dfu_communication_started = 0;
 // #define  DFU_CLRSTATUS 0x04 // 0x21,          Zero,      Interface, Zero,    None
 // #define  DFU_GETSTATE  0x05 // 0xA1,          Zero,      Interface, 1,       State
 // #define  DFU_ABORT     0x06 // 0x21,          Zero,      Interface, Zero,    None
-
-void wait_ms_using_usb(U32 delay_amount)
-{
-   U32 elapsed_time, start_time, last_time;
-
-   elapsed_time = 0;
-   start_time = SI32_USB_0->FRAME.U32;
-
-   while (elapsed_time < delay_amount)
-   {
-      // Find how much time has elapsed
-      last_time = SI32_USB_0->FRAME.U32;
-
-      if (last_time >= start_time)
-      {
-         elapsed_time = last_time - start_time;
-      }
-      else
-      {
-         elapsed_time = 2048 + last_time - start_time;
-      }
-   }
-}
 
 void dfu_req_handler(req_t *req)
 {
@@ -297,7 +265,7 @@ void dfu_req_handler(req_t *req)
 
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
             {
-                wait_ms_using_usb(200);
+                hw_wait_ms(200);
                 SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
                 for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
                 hw_boot_image();
