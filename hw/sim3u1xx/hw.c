@@ -368,8 +368,9 @@ U8 hw_flash_erase( U32 address, U8 verify)
     {
         address &= ~(FLASH_PAGE_SIZE_U8 - 1); // Round down to nearest even page address
         U32* verify_address = (U32*)address;
+        U32 wc;
 
-        for( U32 wc = FLASH_PAGE_SIZE_U32; wc != 0; wc-- )
+        for( wc = FLASH_PAGE_SIZE_U32; wc != 0; wc-- )
         {
             if ( *verify_address != 0xFFFFFFFF )
                 return 1;
@@ -387,6 +388,7 @@ U8 hw_flash_erase( U32 address, U8 verify)
 U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify )
 {
     U32* tmpdata = data;
+    U32 wc;
     flash_key_mask = 0x01;
 
     // Write the address of the Flash page to WRADDR
@@ -405,7 +407,7 @@ U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify )
     armed_flash_key = 0;
 
     // Write word-sized
-    for( U32 wc = count; wc != 0; wc-- )
+    for( wc = count; wc != 0; wc-- )
     {
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data );
         SI32_FLASHCTRL_A_write_wrdata( SI32_FLASHCTRL_0, *data >> 16 );
@@ -422,7 +424,7 @@ U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify )
     {
         U32* verify_address = (U32*)address;
 
-        for( U32 wc = count; wc != 0; wc-- )
+        for( wc = count; wc != 0; wc-- )
         {
             if (*verify_address != *tmpdata++)
                 return 1;
