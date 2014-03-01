@@ -75,5 +75,7 @@ void hw_enable_watchdog( void );
 void hw_boot_image( void );
 void hw_activity_indicator( void );
 void hw_wait_ms(U32 delay_amount);
+int hw_check_skip_bootloader( void );
+int hw_check_extend_bootloader( void );
 
 #endif

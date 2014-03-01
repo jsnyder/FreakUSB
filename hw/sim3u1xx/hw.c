@@ -491,19 +491,61 @@ void hw_activity_indicator( void )
 {
 #if defined( PCB_V8 )
   // Toggle PB0.4 LED0
-  if( toggle ) 
-      SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-  else
-      SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+    if( toggle ) 
+        SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+    else
+        SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
 #else
   // Toggle PB4.3 LED0
-  if( toggle ) 
+    if( toggle ) 
         SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-  else
+    else
         SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
 #endif
-  toggle ^= 1;
+    toggle ^= 1;
 }
+
+int hw_check_skip_bootloader( void )
+{
+    U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
+    U32 pmu_status = SI32_PMU_0->STATUS.U32;
+
+    // If the watchdog, software, pmu or RTC rest us, boot the image
+    if ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) || // watchdog
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_WAKERF_MASK) || // pmu wakeup
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_RTC0RF_MASK) || // rtc0 reset
+        (reset_status & SI32_RSTSRC_A_RESETFLAG_CMP0RF_MASK)) // comparator reset
+    {
+
+        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
+            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
+        {
+            return 1;
+        }
+    }
+
+    if( pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK )
+        return 1;
+
+    if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
+        return 1;
+
+    return 0;
+}
+
+int hw_check_extend_bootloader( void )
+{
+    U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
+    if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
+    {
+        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
+            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
+        {
+            return 1;
+        }
+    }
+}
+
 
 /**************************************************************************/
 /*!

@@ -403,38 +403,13 @@ void dfu_reg_rx_handler(void (*rx)())
 void dfu_init()
 {
     U32 *target_boot_address = (U32*)flash_target;
-    U32 reset_status = SI32_RSTSRC_0->RESETFLAG.U32;
-    U32 pmu_status = SI32_PMU_0->STATUS.U32;
 
-    // If the watchdog, software, pmu or RTC rest us, boot the image
-    if ((reset_status & SI32_RSTSRC_A_RESETFLAG_WDTRF_MASK) || // watchdog
-        (reset_status & SI32_RSTSRC_A_RESETFLAG_WAKERF_MASK) || // pmu wakeup
-        (reset_status & SI32_RSTSRC_A_RESETFLAG_RTC0RF_MASK) || // rtc0 reset
-        (reset_status & SI32_RSTSRC_A_RESETFLAG_CMP0RF_MASK)) // comparator reset
-    {
-
-        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
-            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
-        {
-            hw_boot_image();
-        }
-    }
-
-    if( pmu_status & SI32_PMU_A_STATUS_PM9EF_MASK )
-        hw_boot_image();
-
-    if( ! SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
+    if( hw_check_skip_bootloader() )
         hw_boot_image();
 
     // For software resets, extend the DFU countdown
-    if( reset_status & SI32_RSTSRC_A_RESETFLAG_SWRF_MASK )
-    {
-        if ((((reset_status & SI32_RSTSRC_A_RESETFLAG_PORRF_MASK)
-            || (reset_status & SI32_RSTSRC_A_RESETFLAG_VMONRF_MASK ))) == 0 )
-        {
-            dfu_reset_counter = 30;
-        }
-    }
+    if( hw_check_extend_bootloader() )
+        dfu_reset_counter = 30;
 
     // Otherwise prep for loading
     dfu_status.bStatus = OK;
