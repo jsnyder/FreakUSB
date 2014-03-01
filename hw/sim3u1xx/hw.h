@@ -48,8 +48,16 @@ enum
     SOFI
 };
 
-// Flash writing target
+// Device DFU/Flash Constants
 #define FLASH_TARGET 0x3000
+#define FLASH_PAGE_SIZE_U8    1024
+#define FLASH_PAGE_SIZE_U32   (FLASH_PAGE_SIZE_U8/4)
+#define TOTAL_FLASH_BLOCKS    (SI32_MCU_FLASH_SIZE / FLASH_PAGE_SIZE_U8)
+#define BLOCK_CAPACITY        (TOTAL_FLASH_BLOCKS - DFU_SIZE)
+#define BLOCK_SIZE_U8         FLASH_PAGE_SIZE_U8
+#define BLOCK_SIZE_U32        FLASH_PAGE_SIZE_U32
+#define DFU_START             (BLOCK_CAPACITY *  BLOCK_SIZE_U8)
+#define VECTOR_TABLE_ADDRESS  (SI32_MCU_FLASH_SIZE - BLOCK_SIZE_U8)
 
 // Watchdog timer
 #define EARLY_WARNING_DELAY_MS        1000   // Will result in approx a 1 s
