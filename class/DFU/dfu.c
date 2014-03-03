@@ -55,6 +55,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  * ****************************************************************************/
+// Loosely based on dfu.c from maple-bootloader
+// https://github.com/leaflabs/maple-bootloader
+
 
 /*!
     \defgroup dfu_class USB DFU Class
@@ -141,6 +144,7 @@ void dfu_req_handler(req_t *req)
         	i = req->val;
             if( dfu_status.bState == dfuDNLOAD_IDLE )
             {
+                hw_activity_indicator( HW_STATE_TRANSFER );
                 if( req->len > 0 )
                 {
                     dfu_status.bState = dfuDNLOAD_SYNC;
@@ -150,7 +154,6 @@ void dfu_req_handler(req_t *req)
                     if( flash_buffer_ptr > flash_buffer )
                     {
                         need_to_write = 1;
-                        hw_activity_indicator( HW_STATE_TRANSFER );
                         //flash_buffer_ptr = flash_buffer;
                     }
                     dfu_status.bState  = dfuMANIFEST_SYNC;
@@ -417,10 +420,12 @@ void dfu_init()
     dfu_status.bState = dfuIDLE;
     dfu_status.iString = 0x00;          /* all strings must be 0x00 until we make them! */
 
-    if( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
+    if( ( *( volatile uint32_t* ) FLASH_TARGET ) == 0xFFFFFFFF )
     {
-        hw_enable_watchdog();
+        dfu_reset_counter = 0xFFFF;
     }
+
+    hw_enable_watchdog();
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
 }

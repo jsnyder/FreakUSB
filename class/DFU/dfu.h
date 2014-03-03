@@ -55,6 +55,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  * ****************************************************************************/
+// Based on dfu.h from maple-bootloader
+// https://github.com/leaflabs/maple-bootloader
 
 /*!
     \file dfu.h
