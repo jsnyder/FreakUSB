@@ -261,7 +261,7 @@ extern volatile U16 dfu_reset_counter;
 
 void WDTIMER0_IRQHandler(void)
 {
-    hw_activity_indicator();
+    hw_activity_indicator( HW_STATE_COUNTDOWN );
 
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))

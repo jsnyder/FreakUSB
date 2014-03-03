@@ -489,22 +489,31 @@ void hw_boot_image( void )
 }
 
 volatile uint8_t toggle = 1;
-void hw_activity_indicator( void )
+void hw_activity_indicator( U32 state )
 {
+  switch( state )
+  {
+    case HW_STATE_COUNTDOWN:
+    case HW_STATE_CONNECTED:
+    case HW_STATE_TRANSFER:
+    case HW_STATE_DONE:
 #if defined( PCB_V8 )
-    // Toggle PB0.4 LED0
-    if( toggle ) 
-        SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-    else
-        SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+        // Toggle PB0.4 LED0
+        if( toggle ) 
+            SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
+        else
+            SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
 #else
-    // Toggle PB4.3 LED0
-    if( toggle ) 
-        SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-    else
-        SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
+        // Toggle PB4.3 LED0
+        if( toggle ) 
+            SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
+        else
+            SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
 #endif
-    toggle ^= 1;
+        toggle ^= 1;
+        break;
+  }
+
 }
 
 int hw_check_skip_bootloader( void )

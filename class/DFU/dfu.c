@@ -104,8 +104,6 @@ void dfu_req_handler(req_t *req)
     U8 i;
     usb_pcb_t *pcb = usb_pcb_get();
 
-    hw_activity_indicator();
-    
     switch (req->req)
     {
     case DFU_DETACH:
@@ -126,9 +124,6 @@ void dfu_req_handler(req_t *req)
             // wvalue is wBlockNum
             // wlength is Length
             // data is firmware
-
-
-
             if( dfu_status.bState == dfuIDLE )
             {
                 if( req->len > 0 )
@@ -155,6 +150,7 @@ void dfu_req_handler(req_t *req)
                     if( flash_buffer_ptr > flash_buffer )
                     {
                         need_to_write = 1;
+                        hw_activity_indicator( HW_STATE_TRANSFER );
                         //flash_buffer_ptr = flash_buffer;
                     }
                     dfu_status.bState  = dfuMANIFEST_SYNC;
@@ -215,6 +211,8 @@ void dfu_req_handler(req_t *req)
     case DFU_GETSTATUS:
         if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
         {
+            if( dfu_communication_started == 0 )
+                hw_activity_indicator( HW_STATE_CONNECTED );
 
             dfu_communication_started = 1;
             // If we're still transmitting blocks
