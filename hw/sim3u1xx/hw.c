@@ -171,6 +171,8 @@ void mySystemInit()
 
 }
 
+#if defined( USE_DFU_CLASS )
+
 extern uint32_t SystemCoreClock;
 U32 cmsis_get_cpu_frequency()
 {
@@ -202,6 +204,7 @@ static void gTIMER1_enter_auto_reload_config(void)
   SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_1);
 }
 
+#endif // USE_DFU_CLASS
 
 void hw_init()
 {  
