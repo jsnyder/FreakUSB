@@ -576,13 +576,17 @@ int hw_led_get_mode(int led)
   return -1;
 }
 
-
+static U8 toggle = 0;
 void hw_activity_indicator( U32 state )
 {
   switch( state )
   {
     case HW_STATE_COUNTDOWN:
-        hw_led_set_mode(LED_COLOR_PWR, LED_FADEUP, LED_CONTINUOUS);
+        toggle ^= 1;
+        if( toggle )
+          hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
+        else
+          hw_led_set_mode(LED_COLOR_PWR, LED_OFF, LED_CONTINUOUS);
         break;
     case HW_STATE_CONNECTED:
         hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);

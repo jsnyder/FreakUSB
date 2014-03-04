@@ -262,6 +262,7 @@ extern volatile U16 dfu_reset_counter;
 void WDTIMER0_IRQHandler(void)
 {
 
+
     if ((SI32_WDTIMER_A_is_early_warning_interrupt_pending(SI32_WDTIMER_0) &
         SI32_WDTIMER_A_is_early_warning_interrupt_enabled(SI32_WDTIMER_0)))
     {
@@ -276,6 +277,7 @@ void WDTIMER0_IRQHandler(void)
         }
         else if( dfu_reset_counter > 0 )
         {
+            hw_activity_indicator( HW_STATE_COUNTDOWN );
             SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0); 
             SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
             if( dfu_reset_counter != 0xFFFF)
@@ -339,31 +341,9 @@ U8 led_mask;
 
 void TIMER1H_IRQHandler(void)
 { 
-  led_ticks=((led_ticks+1) & 0x0F);
+  led_ticks=((led_ticks+1) % 0xF);
   if(!led_ticks)
   {
-#if defined( PCB_V8 )
-    //turn LED's off. 6 LEDS are on P0
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ],
-        ( ( U32 ) 1 << 4 ) |
-        ( ( U32 ) 1 << 5 ) |
-        ( ( U32 ) 1 << 6 ) |
-        ( ( U32 ) 1 << 7 ) |
-        ( ( U32 ) 1 << 8 ) |
-        ( ( U32 ) 1 << 9 )
-         );
-#else
-    //turn LED's off. 5 LEDS are on P2 and the on board blue LED is on P4.3
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], 
-        ( ( U32 ) 1 << 5 ) |
-        ( ( U32 ) 1 << 6 ) |
-        ( ( U32 ) 1 << 7 ) |
-        ( ( U32 ) 1 << 8 ) |
-        ( ( U32 ) 1 << 9 )
-         );
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
-#endif
-
     if(led_pointer_tick == 3)
     {
       led_pointer_tick = 0;
@@ -402,9 +382,13 @@ void TIMER1H_IRQHandler(void)
     }
     led_pointer_tick++;
   }
+  else
+  {
 
   if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 5 ) );
+  else
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 5 ) );
   if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
   {
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 6 ) );
@@ -413,6 +397,17 @@ void TIMER1H_IRQHandler(void)
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
   #else
     SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+  #endif
+  #endif
+  }
+  else
+  {
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 6 ) );
+  #if !defined( MEMBRANE_V1)
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
+  #else
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
   #endif
   #endif
   }
@@ -427,11 +422,26 @@ void TIMER1H_IRQHandler(void)
   #endif
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 7 ) );
   }
+  else
+  {
+  #if defined( MEMBRANE_V1)
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
+  #else
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+  #endif
+  #endif
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 7 ) );
+  }
   if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 8 ) );
+  else
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 8 ) );
   if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
     SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 9 ) );
- 
+  else
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 9 ) );
+ }
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }

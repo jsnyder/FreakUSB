@@ -426,8 +426,6 @@ void dfu_init()
         dfu_reset_counter = 0xFFFF;
     }
 
-    hw_activity_indicator( HW_STATE_COUNTDOWN );
-
     hw_enable_watchdog();
 
     usb_reg_class_drvr(dfu_ep_init, dfu_req_handler, dfu_rx_handler);
