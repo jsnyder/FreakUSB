@@ -131,6 +131,7 @@ void dfu_req_handler(req_t *req)
             {
                 if( req->len > 0 )
                 {
+                    hw_activity_indicator( HW_STATE_TRANSFER );
                     dfu_status.bState = dfuDNLOAD_SYNC;
                 }
                 else
@@ -144,7 +145,6 @@ void dfu_req_handler(req_t *req)
         	i = req->val;
             if( dfu_status.bState == dfuDNLOAD_IDLE )
             {
-                hw_activity_indicator( HW_STATE_TRANSFER );
                 if( req->len > 0 )
                 {
                     dfu_status.bState = dfuDNLOAD_SYNC;
@@ -241,6 +241,7 @@ void dfu_req_handler(req_t *req)
             {
             	dfu_status.bState=dfuMANIFEST;
                 dfu_status.bwPollTimeout0 = 0xFF;
+                hw_activity_indicator( HW_STATE_DONE );
             }
             else if( dfu_status.bState == dfuMANIFEST &&
                      need_to_write == 0)
@@ -424,6 +425,8 @@ void dfu_init()
     {
         dfu_reset_counter = 0xFFFF;
     }
+
+    hw_activity_indicator( HW_STATE_COUNTDOWN );
 
     hw_enable_watchdog();
 

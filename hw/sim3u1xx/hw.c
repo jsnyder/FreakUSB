@@ -577,13 +577,12 @@ int hw_led_get_mode(int led)
 }
 
 
-volatile uint8_t toggle = 1;
 void hw_activity_indicator( U32 state )
 {
   switch( state )
   {
     case HW_STATE_COUNTDOWN:
-        hw_led_set_mode(LED_COLOR_PWR, LED_SLOWFLASH, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_PWR, LED_FADEUP, LED_CONTINUOUS);
         break;
     case HW_STATE_CONNECTED:
         hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
@@ -601,8 +600,6 @@ void hw_activity_indicator( U32 state )
         hw_led_set_mode(LED_COLOR_MSG, LED_ON, LED_CONTINUOUS);
         break;
   }
-  toggle ^= 1;
-
 }
 
 int hw_check_skip_bootloader( void )
