@@ -579,7 +579,7 @@ int hw_led_get_mode(int led)
 }
 
 static U8 toggle = 0;
-void hw_activity_indicator( U32 state )
+void hw_state_indicator( U32 state )
 {
   switch( state )
   {
@@ -605,6 +605,12 @@ void hw_activity_indicator( U32 state )
         hw_led_set_mode(LED_COLOR_GPS, LED_ON, LED_CONTINUOUS);
         hw_led_set_mode(LED_COLOR_SAT, LED_ON, LED_CONTINUOUS);
         hw_led_set_mode(LED_COLOR_MSG, LED_ON, LED_CONTINUOUS);
+        break;
+    case HW_STATE_ERROR:
+        hw_led_set_mode(LED_COLOR_ALRM, LED_ON, LED_CONTINUOUS);
+        break;
+    case HW_STATE_ERROR_CLR:
+        hw_led_set_mode(LED_COLOR_ALRM, LED_OFF, LED_CONTINUOUS);
         break;
   }
 }
