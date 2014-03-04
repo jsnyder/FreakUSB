@@ -511,10 +511,11 @@ void hw_enable_watchdog( void )
 void hw_boot_image( void )
 {
     volatile uint32_t jumpaddr;
-    void (*app_fn)(void) = NULL;
 
     if ( ( *( volatile uint32_t* ) FLASH_TARGET ) != 0xFFFFFFFF )
     {
+        void (*app_fn)(void) = NULL;
+
         // prepare jump address
         jumpaddr = *(volatile uint32_t*) (0x3000 + 4);
         // prepare jumping function
@@ -531,6 +532,8 @@ void hw_boot_image( void )
         app_fn();
     }
 }
+
+#if defined( USE_DFU_CLASS )
 
 extern U8 led_mask = 0xFF;
 extern U8 * led_pending_mode_ptr[LED_COUNT];
@@ -605,6 +608,8 @@ void hw_activity_indicator( U32 state )
         break;
   }
 }
+
+#endif // USE_DFU_CLASS
 
 int hw_check_skip_bootloader( void )
 {

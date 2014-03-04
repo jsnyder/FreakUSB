@@ -446,7 +446,7 @@ void TIMER1H_IRQHandler(void)
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }
 
-#endif
+#endif // USE_DFU_CLASS
 
 /**************************************************************************/
 /*!

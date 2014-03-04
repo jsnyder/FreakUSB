@@ -48,6 +48,8 @@ enum
     SOFI
 };
 
+#if defined( USE_DFU_CLASS )
+
 enum
 {
     HW_STATE_COUNTDOWN = 0,
@@ -96,6 +98,8 @@ enum {
 //First byte is size of the array
 #define LED_COUNT 5
 #define LED_MAX_ARRAY 32
+
+#endif // USE_DFU_CLASS
 
 // Device DFU/Flash Constants
 #define FLASH_TARGET 0x3000
