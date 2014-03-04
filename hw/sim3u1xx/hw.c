@@ -210,7 +210,7 @@ void hw_init()
 {  
   usb_pcb_t *pcb = usb_pcb_get();
 
-#if defined( USE_DFU_CLASS )
+
   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PLL0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_PB0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART0CEN_DISABLED_U32 |
@@ -249,6 +249,7 @@ void hw_init()
                                 SI32_CLKCTRL_A_AHBCLKG_EMIF0CEN_DISABLED_U32 |
                                 SI32_CLKCTRL_A_AHBCLKG_USB0BCEN_ENABLED_U32;
 
+#if defined( USE_DFU_CLASS )
 
 SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);                  
 SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
