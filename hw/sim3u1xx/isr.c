@@ -284,6 +284,157 @@ void WDTIMER0_IRQHandler(void)
         }
     }
 }
+
+static SI32_PBSTD_A_Type* const port_std[] = { SI32_PBSTD_0, SI32_PBSTD_1, SI32_PBSTD_2, SI32_PBSTD_3 };
+
+static U8 const CLED_FADEUP[] = { LED_MAX_ARRAY/2, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+static U8 const CLED_FADEDOWN[] = { LED_MAX_ARRAY/2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+static U8 const CLED_OFF[] = { 1, 15 };
+static U8 const CLED_ON[] = { 1, 0 };
+static U8 const CLED_FASTFLASH[] = { LED_MAX_ARRAY/4, 0, 15, 15, 15, 15, 15, 15, 15 };
+static U8 const CLED_MEDIUMFLASH[] = { LED_MAX_ARRAY/2, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
+static U8 const CLED_SLOWFLASH[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static U8 const CLED_FLASH1[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static U8 const CLED_FLASH2[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static U8 const CLED_FLASH3[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static U8 const CLED_FLASH4[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+static U8 const CLED_FLASH5[] = { LED_MAX_ARRAY, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
+
+U8 const * led_cled_ptr[] = {
+  CLED_FADEUP,
+  CLED_FADEDOWN,
+  CLED_OFF,
+  CLED_ON,
+  CLED_FASTFLASH,
+  CLED_MEDIUMFLASH,
+  CLED_SLOWFLASH,
+  CLED_FLASH1,
+  CLED_FLASH2,
+  CLED_FLASH3,
+  CLED_FLASH4,
+  CLED_FLASH5
+};
+
+U8 led_pointer_tick = 0;
+U8 led_tick = 0;
+U8 led_repeat_tick = 0;
+
+U8 led_ticks = 0;
+
+U8 led_ticks_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
+
+U8 * led_mode_ptr[] = { (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF };
+U8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
+
+//Pending variables here...wait for new "frame"
+U8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
+U8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
+
+U8 led_mask;
+
+#if defined( PCB_V8 )
+#define LED_PORT 0
+#else
+#define LED_PORT 2
+#endif
+
+void TIMER1H_IRQHandler(void)
+{ 
+  led_ticks=((led_ticks+1) & 0x0F);
+  if(!led_ticks)
+  {
+#if defined( PCB_V8 )
+    //turn LED's off. 6 LEDS are on P0
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ],
+        ( ( U32 ) 1 << 4 ) |
+        ( ( U32 ) 1 << 5 ) |
+        ( ( U32 ) 1 << 6 ) |
+        ( ( U32 ) 1 << 7 ) |
+        ( ( U32 ) 1 << 8 ) |
+        ( ( U32 ) 1 << 9 )
+         );
+#else
+    //turn LED's off. 5 LEDS are on P2 and the on board blue LED is on P4.3
+    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], 
+        ( ( U32 ) 1 << 5 ) |
+        ( ( U32 ) 1 << 6 ) |
+        ( ( U32 ) 1 << 7 ) |
+        ( ( U32 ) 1 << 8 ) |
+        ( ( U32 ) 1 << 9 )
+         );
+    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+#endif
+
+    if(led_pointer_tick == 3)
+    {
+      led_pointer_tick = 0;
+
+      //load next values here
+      if(led_repeat_tick == 0)
+      {
+        led_repeat_tick = 0;
+
+        int lednum;
+        for(lednum=0;lednum<LED_COUNT;lednum++)
+        {
+          if(led_pending_mode_ptr[lednum] != NULL)
+          {
+            led_mode_ptr[lednum] = led_pending_mode_ptr[lednum];
+            led_repeats_ptr[lednum] = led_pending_repeats_ptr[lednum];
+            led_pending_mode_ptr[lednum] = NULL;
+            led_pending_repeats_ptr[lednum] = 0;
+          }
+        }
+      }
+
+      int lednum;
+      for(lednum=0;lednum<LED_COUNT;lednum++)
+      {
+        if(led_repeats_ptr[lednum] > 0)
+        {
+          if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
+            led_repeats_ptr[lednum]--;
+          if(led_repeats_ptr[lednum] > 0)
+            led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+        }
+      }
+      led_tick++;
+      led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
+    }
+    led_pointer_tick++;
+  }
+
+  if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 5 ) );
+  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) ) 
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 6 ) );
+  #if !defined( MEMBRANE_V1)
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
+  #else
+    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+  #endif
+  #endif
+  if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
+  {
+  #if defined( MEMBRANE_V1)
+  #if defined( PCB_V8 )
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
+  #else
+    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+  #endif
+  #endif
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 7 ) );
+  }
+  if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 8 ) );
+  if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
+    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 9 ) );
+ 
+  // Clear the interrupt flag
+  SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
+}
+
 #endif
 
 /**************************************************************************/

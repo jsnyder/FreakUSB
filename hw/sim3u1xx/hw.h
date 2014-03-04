@@ -56,6 +56,47 @@ enum
     HW_STATE_DONE
 };
 
+enum {
+  LED_FADEUP,
+  LED_FADEDOWN,
+  LED_OFF,
+  LED_ON,
+  LED_FASTFLASH,
+  LED_MEDIUMFLASH,
+  LED_SLOWFLASH,
+  LED_FLASH1,
+  LED_FLASH2,
+  LED_FLASH3,
+  LED_FLASH4,
+  LED_FLASH5
+} enum_led_state;
+
+#if defined ( MEMBRANE_V1 )
+enum {
+  LED_COLOR_GPS = 0, // was sat
+  LED_COLOR_MSG = 1, // was pwr
+  LED_COLOR_PWR = 2, // was alrm
+  LED_COLOR_SAT = 3, // was gps
+  LED_COLOR_ALRM = 4 // was msg
+};
+#else
+enum {
+  LED_COLOR_SAT = 0,
+  LED_COLOR_PWR = 1,
+  LED_COLOR_ALRM = 2,
+  LED_COLOR_GPS = 3,
+  LED_COLOR_MSG = 4
+};
+#endif
+
+#define LED_CONTINUOUS 255
+#define LED_REPEATS_FOREVER 255
+#define LEDTICKHZ 1250
+//NOTE! These must be sized by a factor of 2 to calculate properly
+//First byte is size of the array
+#define LED_COUNT 5
+#define LED_MAX_ARRAY 32
+
 // Device DFU/Flash Constants
 #define FLASH_TARGET 0x3000
 #define FLASH_PAGE_SIZE_U8    1024
@@ -93,5 +134,5 @@ void hw_activity_indicator( U32 state );
 void hw_wait_ms(U32 delay_amount);
 int hw_check_skip_bootloader( void );
 int hw_check_extend_bootloader( void );
-
+void hw_led_set_mode(int led, int mode, int cycles);
 #endif

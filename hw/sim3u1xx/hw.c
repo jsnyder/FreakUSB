@@ -171,10 +171,43 @@ void mySystemInit()
 
 }
 
+extern uint32_t SystemCoreClock;
+U32 cmsis_get_cpu_frequency()
+{
+  return SystemCoreClock;
+}
+
+static void gTIMER1_enter_auto_reload_config(void)
+{
+  // ENABLE TIMER1 CLOCK
+  SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
+    SI32_CLKCTRL_A_APBCLKG0_TIMER1CEN_ENABLED_U32);
+
+  // INITIALIZE TIMER  
+  SI32_TIMER_A_initialize (SI32_TIMER_1, 0x00, 0x00, 0x00, 0x00);
+  SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_1);
+  SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_1);
+  SI32_TIMER_A_select_high_auto_reload_mode (SI32_TIMER_1);
+
+  // Set overflow frequency to SYSTICKHZ
+  SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
+  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));  
+
+  // Run Timer
+  SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
+
+  // ENABLE INTERRUPTS
+  NVIC_ClearPendingIRQ(TIMER1H_IRQn);
+  NVIC_EnableIRQ(TIMER1H_IRQn);
+  SI32_TIMER_A_enable_high_overflow_interrupt(SI32_TIMER_1);
+}
+
+
 void hw_init()
 {  
   usb_pcb_t *pcb = usb_pcb_get();
 
+#if defined( USE_DFU_CLASS )
   SI32_CLKCTRL_0->APBCLKG0_SET = SI32_CLKCTRL_A_APBCLKG0_PLL0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_PB0CEN_ENABLED_U32 |
                                  SI32_CLKCTRL_A_APBCLKG0_USART0CEN_DISABLED_U32 |
@@ -277,8 +310,19 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   //int pcb_v5_is_defined; //Will show a compiler warning to note hardware version 
 #endif
 
+#if defined( PCB_V7 )
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_2, 0x03E0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
+#endif
 
+#if defined( PCB_V8 )
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
+#endif
 
+  gTIMER1_enter_auto_reload_config();
+
+#endif // USE_DFU_CLASS
 
   /* --------------------- */
   /* Initialize USB Module */
@@ -488,31 +532,76 @@ void hw_boot_image( void )
     }
 }
 
+extern U8 led_mask = 0xFF;
+extern U8 * led_pending_mode_ptr[LED_COUNT];
+extern U8 const * led_cled_ptr[12];
+extern U8 led_pending_repeats_ptr[LED_COUNT];
+extern U8 * led_mode_ptr[LED_COUNT];
+
+void hw_led_set_mask( U8 mask )
+{
+  led_mask = mask;
+}
+
+void hw_led_set_mode(int led, int mode, int cycles)
+{
+  if(led > LED_COUNT)
+    return;
+  if(cycles > 255)
+    cycles = 255;
+  led_pending_mode_ptr[led] = (U8 *)led_cled_ptr[mode];
+  led_pending_repeats_ptr[led] = cycles;
+}
+
+int hw_led_get_mode(int led)
+{
+  if(led > LED_COUNT)
+    return -1;
+
+  int i;
+  if(led_pending_mode_ptr[led] != NULL)
+  {
+    for(i=0;i<sizeof(led_cled_ptr);i++)
+    {
+      if(led_pending_mode_ptr[led] == led_cled_ptr[i])
+        return i;
+    }
+  } else {
+    for(i=0;i<sizeof(led_cled_ptr);i++)
+    {
+      if(led_mode_ptr[led] == led_cled_ptr[i])
+        return i;
+    }    
+  }
+  return -1;
+}
+
+
 volatile uint8_t toggle = 1;
 void hw_activity_indicator( U32 state )
 {
   switch( state )
   {
     case HW_STATE_COUNTDOWN:
+        hw_led_set_mode(LED_COLOR_PWR, LED_SLOWFLASH, LED_CONTINUOUS);
+        break;
     case HW_STATE_CONNECTED:
+        hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_GPS, LED_SLOWFLASH, LED_CONTINUOUS);
+        break;
     case HW_STATE_TRANSFER:
+        hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_GPS, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_SAT, LED_FASTFLASH, LED_CONTINUOUS);
+        break;
     case HW_STATE_DONE:
-#if defined( PCB_V8 )
-        // Toggle PB0.4 LED0
-        if( toggle ) 
-            SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-        else
-            SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
-#else
-        // Toggle PB4.3 LED0
-        if( toggle ) 
-            SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
-        else
-            SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x08 );
-#endif
-        toggle ^= 1;
+        hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_GPS, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_SAT, LED_ON, LED_CONTINUOUS);
+        hw_led_set_mode(LED_COLOR_MSG, LED_ON, LED_CONTINUOUS);
         break;
   }
+  toggle ^= 1;
 
 }
 

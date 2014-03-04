@@ -1,6 +1,6 @@
 #!/bin/bash
 make clean
-make EXTRA_DEFINES="-DPCB_V8"
+make EXTRA_DEFINES="-DPCB_V8 -DMEMBRANE_V1"
 mv main.hex dfu_pcbv8.hex
 mv main.bin dfu_pcbv8.bin
 mv main.elf dfu_pcbv8.elf
