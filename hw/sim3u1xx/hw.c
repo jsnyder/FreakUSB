@@ -183,7 +183,14 @@ void hw_init()
   SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
+
+#if defined( PCB_V7 )
   int pcb_v7_is_defined; //Will show a compiler warning to note hardware version 
+#endif
+#if defined( PCB_V8 )
+  int pcb_v8_is_defined; //Will show a compiler warning to note hardware version 
+#endif
+
   // Setup PBHD4
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
