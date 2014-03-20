@@ -55,6 +55,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  * ****************************************************************************/
+// Based on dfu.h from maple-bootloader
+// https://github.com/leaflabs/maple-bootloader
 
 /*!
     \file dfu.h
@@ -76,20 +78,6 @@ typedef struct _DFUStatus {
 
 #define NUM_EPS             1
 #define STATUS_SZ           6
-
-// Device DFU/Flash Constants
-#define DFU_SIZE              16 // In 1k increments for flash pages, also called dfu blocks
-#define FLASH_PAGE_SIZE_U8    1024
-#define FLASH_PAGE_SIZE_U32   (FLASH_PAGE_SIZE_U8/4)
-#define TOTAL_FLASH_BLOCKS    (SI32_MCU_FLASH_SIZE / FLASH_PAGE_SIZE_U8)
-#define BLOCK_CAPACITY        (TOTAL_FLASH_BLOCKS - DFU_SIZE)
-#define BLOCK_SIZE_U8         FLASH_PAGE_SIZE_U8
-#define BLOCK_SIZE_U32        FLASH_PAGE_SIZE_U32
-#define DFU_START             (BLOCK_CAPACITY *  BLOCK_SIZE_U8)
-#define VECTOR_TABLE_ADDRESS  (SI32_MCU_FLASH_SIZE - BLOCK_SIZE_U8)
-#define BOOT_MANAGER_ADDRESS  (DFU_START + 1) // Need to add 1 to address to indicate this is thumb code
-#define DFU_SIGNATURE_ADDRESS (DFU_START - 4) // Always 4 bytes below start of dfu
-#define VALID_DFU_SIGNATURE   0x44465531      // Signature word is 'D', 'F', 'U', '1' after succesful download
 
 // DFU Request Definitions
                             // bmRequestType, wValue,    wIndex,    wLength, Data

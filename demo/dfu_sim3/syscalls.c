@@ -1,3 +1,7 @@
+// From syscalls.c in Newlib
+// License should fall under one of the licenses in COPYING.NEWLIB
+// http://sourceware.org/newlib/COPYING.NEWLIB
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
