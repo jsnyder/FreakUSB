@@ -277,7 +277,7 @@ void WDTIMER0_IRQHandler(void)
         }
         else if( dfu_reset_counter > 0 )
         {
-            hw_activity_indicator( HW_STATE_COUNTDOWN );
+            hw_state_indicator( HW_STATE_COUNTDOWN );
             SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0); 
             SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
             if( dfu_reset_counter != 0xFFFF)
@@ -331,7 +331,7 @@ U8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
 U8 * led_pending_mode_ptr[LED_COUNT] = { NULL, NULL, NULL, NULL, NULL };
 U8 led_pending_repeats_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
-U8 led_mask;
+U8 led_mask = 0x00;
 
 #if defined( PCB_V8 )
 #define LED_PORT 0

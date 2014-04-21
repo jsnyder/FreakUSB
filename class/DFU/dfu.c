@@ -131,13 +131,14 @@ void dfu_req_handler(req_t *req)
             {
                 if( req->len > 0 )
                 {
-                    hw_activity_indicator( HW_STATE_TRANSFER );
+                    hw_state_indicator( HW_STATE_TRANSFER );
                     dfu_status.bState = dfuDNLOAD_SYNC;
                 }
                 else
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errNOTDONE;
+                    hw_state_indicator( HW_STATE_ERROR );
                     ep_send_zlp(EP_CTRL);
                     return;
                 }
@@ -194,6 +195,7 @@ void dfu_req_handler(req_t *req)
             if( flash_buffer_ptr > flash_buffer + BLOCK_SIZE_U32)
             {
                 dfu_status.bState  = dfuERROR;
+                hw_state_indicator( HW_STATE_ERROR );
             }
 
             ep_send_zlp(EP_CTRL);
@@ -215,7 +217,7 @@ void dfu_req_handler(req_t *req)
         if (req->type & (DEVICE_TO_HOST | TYPE_CLASS | RECIPIENT_INTF))
         {
             if( dfu_communication_started == 0 )
-                hw_activity_indicator( HW_STATE_CONNECTED );
+                hw_state_indicator( HW_STATE_CONNECTED );
 
             dfu_communication_started = 1;
             // If we're still transmitting blocks
@@ -241,7 +243,7 @@ void dfu_req_handler(req_t *req)
             {
             	dfu_status.bState=dfuMANIFEST;
                 dfu_status.bwPollTimeout0 = 0xFF;
-                hw_activity_indicator( HW_STATE_DONE );
+                hw_state_indicator( HW_STATE_DONE );
             }
             else if( dfu_status.bState == dfuMANIFEST &&
                      need_to_write == 0)
@@ -253,6 +255,7 @@ void dfu_req_handler(req_t *req)
                     {
                         dfu_status.bState  = dfuERROR;
                         dfu_status.bStatus = errERASE;
+                        hw_state_indicator( HW_STATE_ERROR );
                     }
                     flash_target += BLOCK_SIZE_U8;
                 }
@@ -279,11 +282,13 @@ void dfu_req_handler(req_t *req)
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errERASE;
+                    hw_state_indicator( HW_STATE_ERROR );
                 }
                 if( 0 != hw_flash_write( flash_target, ( U32* )flash_buffer, flash_buffer_ptr - flash_buffer, 1 ) )
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errVERIFY;
+                    hw_state_indicator( HW_STATE_ERROR );
                 }
                 flash_buffer_ptr = flash_buffer;
                 flash_target += BLOCK_SIZE_U8;
@@ -304,6 +309,7 @@ void dfu_req_handler(req_t *req)
             {
                 dfu_status.bStatus = OK;
                 dfu_status.bState = dfuIDLE;
+                hw_state_indicator( HW_STATE_ERROR_CLR );
             }
         }
         break;
@@ -338,6 +344,7 @@ void dfu_req_handler(req_t *req)
                 {
                     dfu_status.bState  = dfuERROR;
                     dfu_status.bStatus = errERASE;
+                    hw_state_indicator( HW_STATE_ERROR );
                 }
                 dfu_status.bStatus = OK;
                 dfu_status.bState = dfuIDLE;

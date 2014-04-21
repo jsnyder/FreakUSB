@@ -286,16 +286,11 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 #if defined( PCB_V8 )
   //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
-  //Setup PB0.4 LED0
-  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, ( uint32_t ) 1 << 4);
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, ( uint32_t ) 1 << 4 );
 #else
   //Setup PB4.3 LED0/1
   //Setup PB4.2 to LOW to turn on mosfets for bat charger!
   SI32_PBHD_A_write_pins_low( SI32_PBHD_4, 0x04 );
-  SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x08 );
 #endif
-
 
   SI32_PBCFG_A_enable_crossbar_0(SI32_PBCFG_0);
 
@@ -320,7 +315,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 #endif
 
 #if defined( PCB_V8 )
-  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
 #endif
 
@@ -539,7 +534,7 @@ void hw_boot_image( void )
 
 #if defined( USE_DFU_CLASS )
 
-extern U8 led_mask = 0xFF;
+extern U8 led_mask;
 extern U8 * led_pending_mode_ptr[LED_COUNT];
 extern U8 const * led_cled_ptr[12];
 extern U8 led_pending_repeats_ptr[LED_COUNT];
@@ -584,11 +579,12 @@ int hw_led_get_mode(int led)
 }
 
 static U8 toggle = 0;
-void hw_activity_indicator( U32 state )
+void hw_state_indicator( U32 state )
 {
   switch( state )
   {
     case HW_STATE_COUNTDOWN:
+        hw_led_set_mask( 0xff );
         toggle ^= 1;
         if( toggle )
           hw_led_set_mode(LED_COLOR_PWR, LED_ON, LED_CONTINUOUS);
@@ -609,6 +605,12 @@ void hw_activity_indicator( U32 state )
         hw_led_set_mode(LED_COLOR_GPS, LED_ON, LED_CONTINUOUS);
         hw_led_set_mode(LED_COLOR_SAT, LED_ON, LED_CONTINUOUS);
         hw_led_set_mode(LED_COLOR_MSG, LED_ON, LED_CONTINUOUS);
+        break;
+    case HW_STATE_ERROR:
+        hw_led_set_mode(LED_COLOR_ALRM, LED_ON, LED_CONTINUOUS);
+        break;
+    case HW_STATE_ERROR_CLR:
+        hw_led_set_mode(LED_COLOR_ALRM, LED_OFF, LED_CONTINUOUS);
         break;
   }
 }
