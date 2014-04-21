@@ -568,13 +568,13 @@ int hw_led_get_mode(int led)
   int i;
   if(led_pending_mode_ptr[led] != NULL)
   {
-    for(i=0;i<sizeof(led_cled_ptr);i++)
+    for(i=0;i<( sizeof( led_cled_ptr ) / sizeof( led_cled_ptr[0] ) );i++)
     {
       if(led_pending_mode_ptr[led] == led_cled_ptr[i])
         return i;
     }
   } else {
-    for(i=0;i<sizeof(led_cled_ptr);i++)
+    for(i=0;i<( sizeof( led_cled_ptr ) / sizeof( led_cled_ptr[0] ) );i++)
     {
       if(led_mode_ptr[led] == led_cled_ptr[i])
         return i;
