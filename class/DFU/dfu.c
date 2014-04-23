@@ -271,8 +271,6 @@ void dfu_req_handler(req_t *req)
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
             {
                 hw_wait_ms(200);
-                SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-                for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
                 hw_boot_image();
             }
 
