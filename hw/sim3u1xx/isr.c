@@ -283,6 +283,12 @@ void WDTIMER0_IRQHandler(void)
             if( dfu_reset_counter != 0xFFFF)
                 dfu_reset_counter--;
         }
+        else if( dfu_reset_counter == 0 )
+        {
+          SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0);
+          SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
+          hw_boot_image();
+        }
     }
 }
 
