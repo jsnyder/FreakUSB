@@ -31,9 +31,9 @@
     Please post support questions to the FreakLabs forum.
 *******************************************************************/
 //------------------------------------------------------------------------------
-// Copyright (c) 2012 by Silicon Laboratories. 
+// Copyright (c) 2012 by Silicon Laboratories.
 // All rights reserved. This program and the accompanying materials
-// are made available under the terms of the Silicon Laboratories End User 
+// are made available under the terms of the Silicon Laboratories End User
 // License Agreement which accompanies this distribution, and is available at
 // http://developer.silabs.com/legal/version/v10/License_Agreement_v10.htm
 // Original content and implementation provided by Silicon Laboratories.
@@ -60,7 +60,7 @@ void intp_clear_all()
 {
     uint32_t usbCommonInterruptMask = SI32_USB_A_read_cmint(SI32_USB_0);
     uint32_t usbEpInterruptMask = SI32_USB_A_read_ioint(SI32_USB_0);
-    
+
     if (usbCommonInterruptMask)
     {
     // SI32_USB_A_clear_common_interrupts( SI32_USB_0, bCommon );
@@ -238,7 +238,7 @@ void USB0_IRQHandler( void )
     {
         usbep_handler( ep_intp_num );
     }
-    
+
     if( usbEpInterruptMask & SI32_USB_A_IOINT_EP0I_MASK )
     {
         ep0_handler();
@@ -278,7 +278,7 @@ void WDTIMER0_IRQHandler(void)
         else if( dfu_reset_counter > 0 )
         {
             hw_state_indicator( HW_STATE_COUNTDOWN );
-            SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0); 
+            SI32_WDTIMER_A_reset_counter(SI32_WDTIMER_0);
             SI32_WDTIMER_A_clear_early_warning_interrupt(SI32_WDTIMER_0);
             if( dfu_reset_counter != 0xFFFF)
                 dfu_reset_counter--;
@@ -340,7 +340,7 @@ U8 led_mask = 0x00;
 #endif
 
 void TIMER1H_IRQHandler(void)
-{ 
+{
   led_ticks=((led_ticks+1) % 0xF);
   if(!led_ticks)
   {
@@ -461,7 +461,7 @@ void TIMER1H_IRQHandler(void)
     U8 ep_num;
 
     cli();
-        
+
         // save off the endpoint number we were just on. we'll restore it later
     ep_num = UENUM;
 
@@ -514,20 +514,20 @@ void TIMER1H_IRQHandler(void)
 
         // freeze the clock
         USBCON |= _BV(FRZCLK);
-        
+
         // enable the 48 MHz PLL
-        PLLCSR &= ~(_BV(PLLP2) | _BV(PLLP1) | _BV(PLLP0)); 
+        PLLCSR &= ~(_BV(PLLP2) | _BV(PLLP1) | _BV(PLLP0));
         PLLCSR |= _BV(1<<PLLE);
-    
+
         // busy wait until the PLL is locked
         while (!(PLLCSR & _BV(PLOCK)));
-    
+
         // unfreeze clock
         USBCON &= ~_BV(FRZCLK);
-    
+
         // attach USB
         UDCON &= ~_BV(DETACH);
-    
+
         // reset CPU
         UDCON |= _BV(RSTCPU);
     }
