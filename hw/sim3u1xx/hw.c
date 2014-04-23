@@ -32,9 +32,9 @@
 *******************************************************************/
 
 //------------------------------------------------------------------------------
-// Copyright (c) 2012 by Silicon Laboratories. 
+// Copyright (c) 2012 by Silicon Laboratories.
 // All rights reserved. This program and the accompanying materials
-// are made available under the terms of the Silicon Laboratories End User 
+// are made available under the terms of the Silicon Laboratories End User
 // License Agreement which accompanies this distribution, and is available at
 // http://developer.silabs.com/legal/version/v10/License_Agreement_v10.htm
 // Original content and implementation provided by Silicon Laboratories.
@@ -185,7 +185,7 @@ static void gTIMER1_enter_auto_reload_config(void)
   SI32_CLKCTRL_A_enable_apb_to_modules_0(SI32_CLKCTRL_0,
     SI32_CLKCTRL_A_APBCLKG0_TIMER1CEN_ENABLED_U32);
 
-  // INITIALIZE TIMER  
+  // INITIALIZE TIMER
   SI32_TIMER_A_initialize (SI32_TIMER_1, 0x00, 0x00, 0x00, 0x00);
   SI32_TIMER_A_select_single_timer_mode (SI32_TIMER_1);
   SI32_TIMER_A_select_high_clock_source_apb_clock (SI32_TIMER_1);
@@ -193,7 +193,7 @@ static void gTIMER1_enter_auto_reload_config(void)
 
   // Set overflow frequency to SYSTICKHZ
   SI32_TIMER_A_write_capture (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
-  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));  
+  SI32_TIMER_A_write_count (SI32_TIMER_1, (unsigned) -(cmsis_get_cpu_frequency()/LEDTICKHZ));
 
   // Run Timer
   SI32_TIMER_A_start_high_timer(SI32_TIMER_1);
@@ -207,7 +207,7 @@ static void gTIMER1_enter_auto_reload_config(void)
 #endif // USE_DFU_CLASS
 
 void hw_init()
-{  
+{
   usb_pcb_t *pcb = usb_pcb_get();
 
 
@@ -251,7 +251,7 @@ void hw_init()
 
 #if defined( USE_DFU_CLASS )
 
-SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);                  
+SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
 SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
 
 SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
@@ -259,7 +259,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 #if defined( PCB_V7 ) || defined( PCB_V8 )
 #if defined( PCB_V7 )
   #warning "Building for PCB V7"
-  //int pcb_v7_is_defined; //Will show a compiler warning to note hardware version 
+  //int pcb_v7_is_defined; //Will show a compiler warning to note hardware version
 #endif
 #if defined( PCB_V8 )
   #warning "Building for PCB V8"
@@ -299,14 +299,14 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   // PB2.1 is wakeup
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_2, 0x00000002);
 
-  // Setup PB3 
+  // Setup PB3
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
   //PB3.9 is usb voltage detection
   SI32_PBSTD_A_set_pins_digital_input(SI32_PBSTD_3, 0x00000200);
 
 #else
   #warning "Building for PCB V5"
-  //int pcb_v5_is_defined; //Will show a compiler warning to note hardware version 
+  //int pcb_v5_is_defined; //Will show a compiler warning to note hardware version
 #endif
 
 #if defined( PCB_V7 )
@@ -490,7 +490,7 @@ void hw_enable_watchdog( void )
                                            SI32_CLKCTRL_A_APBCLKG1_MISC1CEN_ENABLED_U32);
 
     SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0); 
+    SI32_WDTIMER_A_reset_counter (SI32_WDTIMER_0);
     while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
     SI32_WDTIMER_A_set_early_warning_threshold (SI32_WDTIMER_0, EARLY_WARNING_THRESHOLD);
     while(SI32_WDTIMER_A_is_threshold_update_pending(SI32_WDTIMER_0));
@@ -573,7 +573,7 @@ int hw_led_get_mode(int led)
     {
       if(led_mode_ptr[led] == led_cled_ptr[i])
         return i;
-    }    
+    }
   }
   return -1;
 }
