@@ -422,9 +422,9 @@ void dfu_init()
 
     // Otherwise prep for loading
     dfu_status.bStatus = OK;
-    dfu_status.bwPollTimeout0 = 0x00;  
-    dfu_status.bwPollTimeout1 = 0x00;  
-    dfu_status.bwPollTimeout2 = 0x00;  
+    dfu_status.bwPollTimeout0 = 0x00;
+    dfu_status.bwPollTimeout1 = 0x00;
+    dfu_status.bwPollTimeout2 = 0x00;
     dfu_status.bState = dfuIDLE;
     dfu_status.iString = 0x00;          /* all strings must be 0x00 until we make them! */
 
