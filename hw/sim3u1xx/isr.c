@@ -268,12 +268,7 @@ void WDTIMER0_IRQHandler(void)
     {
         if( dfu_communication_started == 1 )
         {
-            SI32_WDTIMER_A_disable_early_warning_interrupt(SI32_WDTIMER_0);
-            NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
-            NVIC_DisableIRQ(WDTIMER0_IRQn);
-
-            SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
-            SI32_RSTSRC_A_disable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+            hw_disable_watchdog();
         }
         else if( dfu_reset_counter > 0 )
         {

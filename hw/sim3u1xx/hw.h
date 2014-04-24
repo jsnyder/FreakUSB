@@ -123,7 +123,7 @@ enum {
 #define RESET_THRESHOLD               (uint32_t)((16400*RESET_DELAY_MS)/1000)
 
 
-#define PROGMEM 
+#define PROGMEM
 
 #define PSTR(a) (a)
 #define printf_P(a) fputs(a, stdout)
@@ -135,6 +135,7 @@ U8 hw_flash_get_byte(U8 *addr);
 U8 hw_flash_erase( U32 address, U8 verify);
 U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify );
 void hw_enable_watchdog( void );
+void hw_disable_watchdog( void );
 void hw_boot_image( void );
 void hw_state_indicator( U32 state );
 void hw_wait_ms(U32 delay_amount);

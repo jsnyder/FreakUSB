@@ -507,6 +507,17 @@ void hw_enable_watchdog( void )
     SI32_RSTSRC_A_enable_watchdog_timer_reset_source(SI32_RSTSRC_0);
 }
 
+
+void hw_disable_watchdog( void )
+{
+    SI32_WDTIMER_A_disable_early_warning_interrupt(SI32_WDTIMER_0);
+    NVIC_ClearPendingIRQ(WDTIMER0_IRQn);
+    NVIC_DisableIRQ(WDTIMER0_IRQn);
+
+    SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
+    SI32_RSTSRC_A_disable_watchdog_timer_reset_source(SI32_RSTSRC_0);
+}
+
 void hw_boot_image( void )
 {
     volatile uint32_t * image_base = ( volatile uint32_t * )FLASH_TARGET;
@@ -515,11 +526,11 @@ void hw_boot_image( void )
     if( *image_base != 0xFFFFFFFF )
     {
         SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-        for (U32 down_count = 0x1FFFFFF; down_count != 0; down_count--);
+        for( volatile U32 down_count = 0x147AE1; down_count != 0; down_count-- );
 
         // Set up image entry point function pointer
         // entry point is 1 word after start of image
-        enter_image = (void ( * )(void))( *( image_base + 1 ) );
+        enter_image = ( void ( * )( void ) )( *( image_base + 1 ) );
 
         // Disable USB Interrupts
         NVIC_DisableIRQ( USB0_IRQn );
