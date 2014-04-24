@@ -409,8 +409,6 @@ void dfu_reg_rx_handler(void (*rx)())
 /**************************************************************************/
 void dfu_init()
 {
-    U32 *target_boot_address = (U32*)flash_target;
-
     if( hw_check_skip_bootloader() )
         hw_boot_image();
 
