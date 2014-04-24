@@ -518,6 +518,8 @@ void hw_disable_watchdog( void )
     SI32_RSTSRC_A_disable_watchdog_timer_reset_source(SI32_RSTSRC_0);
 }
 
+// Originally based on comments by Marco Accame
+// http://www.keil.com/forum/17025/
 void hw_boot_image( void )
 {
     volatile uint32_t * image_base = ( volatile uint32_t * )FLASH_TARGET;
