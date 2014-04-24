@@ -399,6 +399,17 @@ void dfu_reg_rx_handler(void (*rx)())
     }
 }
 
+int dfu_pending_boot = 0;
+
+void dfu_pend_boot_image( void )
+{
+    dfu_pending_boot = 1;
+}
+
+int dfu_is_boot_pending( void )
+{
+    return dfu_pending_boot;
+}
 
 
 /**************************************************************************/

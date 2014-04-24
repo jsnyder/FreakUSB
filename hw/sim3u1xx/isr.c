@@ -281,7 +281,7 @@ void WDTIMER0_IRQHandler(void)
 
             if( dfu_reset_counter == 0 )
             {
-              hw_boot_image();
+              dfu_pend_boot_image();
             }
         }
     }

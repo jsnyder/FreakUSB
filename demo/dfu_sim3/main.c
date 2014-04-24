@@ -78,5 +78,7 @@ int main()
     while (1)
     {
         usb_poll();
+        if( dfu_is_boot_pending() )
+            hw_boot_image();
     }
 }

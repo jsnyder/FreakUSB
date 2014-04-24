@@ -127,7 +127,8 @@ void dfu_init();
 void dfu_req_handler();
 void dfu_rx_handler();
 void dfu_reg_rx_handler(void (*rx)());
-void boot_image( void );
+void dfu_pend_boot_image( void );
+int dfu_is_boot_pending( void );
 
 #endif // DFU_H
 
