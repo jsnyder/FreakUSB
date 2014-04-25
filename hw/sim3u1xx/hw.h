@@ -136,7 +136,7 @@ U8 hw_flash_erase( U32 address, U8 verify);
 U8 hw_flash_write( U32 address, U32* data, U32 count, U8 verify );
 void hw_enable_watchdog( void );
 void hw_disable_watchdog( void );
-void hw_boot_image( void );
+void hw_boot_image( int usb_started );
 void hw_state_indicator( U32 state );
 void hw_wait_ms(U32 delay_amount);
 int hw_check_skip_bootloader( void );

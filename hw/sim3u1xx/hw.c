@@ -520,15 +520,18 @@ void hw_disable_watchdog( void )
 
 // Originally based on comments by Marco Accame
 // http://www.keil.com/forum/17025/
-void hw_boot_image( void )
+void hw_boot_image( int usb_started )
 {
     volatile uint32_t * image_base = ( volatile uint32_t * )FLASH_TARGET;
     void ( *enter_image )( void );
 
     if( *image_base != 0xFFFFFFFF )
     {
-        SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
-        for( volatile U32 down_count = 0x147AE1; down_count != 0; down_count-- );
+        if( usb_started )
+        {
+          SI32_USB_A_disable_internal_pull_up( SI32_USB_0 );
+          for( volatile U32 down_count = 0x147AE1; down_count != 0; down_count-- );
+        }
 
         // Set up image entry point function pointer
         // entry point is 1 word after start of image

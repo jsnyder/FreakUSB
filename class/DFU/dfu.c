@@ -271,7 +271,7 @@ void dfu_req_handler(req_t *req)
             if( dfu_status.bState == dfuMANIFEST_WAIT_RESET )
             {
                 hw_wait_ms(200);
-                hw_boot_image();
+                hw_boot_image( 1 );
             }
 
             if( need_to_write )
@@ -421,7 +421,7 @@ int dfu_is_boot_pending( void )
 void dfu_init()
 {
     if( hw_check_skip_bootloader() )
-        hw_boot_image();
+        hw_boot_image( 0 );
 
     // For software resets, extend the DFU countdown
     if( hw_check_extend_bootloader() )
