@@ -171,8 +171,12 @@ void mySystemInit()
   SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
   SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_0 );
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
+  SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_3 );
-
+  SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
+  SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
 }
 
 #if defined( USE_DFU_CLASS )
