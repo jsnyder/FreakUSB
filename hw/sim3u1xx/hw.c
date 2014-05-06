@@ -168,9 +168,16 @@ void mySystemInit()
   SI32_CLKCTRL_A_enable_apb_to_modules_0 (SI32_CLKCTRL_0, SI32_CLKCTRL_A_APBCLKG0_PB0CEN_MASK);
   // make the SWO pin (PB1.3) push-pull to enable SWV printf
   //SI32_PBSTD_A_set_pins_push_pull_output (SI32_PBSTD_1, (1<<3));
+
+  SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( uint32_t ) 1 << 11);
+#if defined( PCB_V8 )
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_3, ( uint32_t ) 1 << 11 ); //Set 5V regulator off
+#else
+  SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( uint32_t ) 1 << 11 ); //Set 5V regulator off
+#endif
   SI32_PMU_A_clear_pmu_level_shifter_hold(SI32_PMU_0);
   SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
-  SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_0 );
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_1 );
   SI32_PBSTD_A_disable_pullup_resistors( SI32_PBSTD_2 );
