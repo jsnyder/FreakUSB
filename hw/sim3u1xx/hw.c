@@ -379,8 +379,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
   SI32_USB_A_enable_module( SI32_USB_0 );
 
-  if( SI32_VREG_A_is_vbus_valid( SI32_VREG_0 ) )
-    pcb->connected = true;
+  pcb->connected = true;
 }
 
 /**************************************************************************/
