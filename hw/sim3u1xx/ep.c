@@ -77,7 +77,7 @@ U8 ep_size_get(U8 ep_num)
 {
     if( ep_num == 0 )
         return 64;
-    else
+    else if( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
     {
         if( ep_dir_get( ep_num ) == DIR_IN )
             return (SI32_USBEP_A_get_in_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
@@ -85,6 +85,7 @@ U8 ep_size_get(U8 ep_num)
             return (SI32_USBEP_A_get_out_max_packet_size( usb_ep[ ep_num - 1 ] ))*8;
     }
 
+    return 0;
 }
 
 /**************************************************************************/
@@ -153,7 +154,7 @@ void ep_config(U8 ep_num, U8 type, U8 dir, U8 size)
     // select the endpoint and reset it
     // FIXME
 
-    if( ep_num > 0 )
+    if( ep_num > 0 && ( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) ) )
     {
         if( dir == DIR_OUT )
         {
@@ -283,7 +284,7 @@ void ep_write(U8 ep_num)
             SI32_USB_0->EP0CONTROL.U32 = ControlReg;
 
         }
-        else
+        else if( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
         {
             if( ep_dir_get( ep_num )  == DIR_OUT )
                 return;
@@ -326,7 +327,7 @@ void ep_write(U8 ep_num)
 /**************************************************************************/
 void ep_read(U8 ep_num)
 {
-    U8 i, len;
+    U8 i, len = 0;
     usb_pcb_t *pcb = usb_pcb_get();
 
     if( ep_num == 0 )
@@ -347,7 +348,7 @@ void ep_read(U8 ep_num)
  
         }
     }
-    else if( ep_num > 0 )
+    else if( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
     {
         if( ep_dir_get( ep_num )  == DIR_IN )
             return;
@@ -410,7 +411,7 @@ void ep_set_stall(U8 ep_num)
     pcb->ep_stall |= (1 << ep_num);
     if( ep_num == 0 )
         SI32_USB_A_send_stall_ep0( SI32_USB_0 );
-    else
+    else if( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
     {
         if( ep_dir_get( ep_num ) == DIR_IN )
         {
@@ -437,7 +438,7 @@ void ep_clear_stall(U8 ep_num)
     pcb->ep_stall &= ~(1 << ep_num);
     if( ep_num == 0 )
         SI32_USB_A_clear_stall_sent_ep0( SI32_USB_0 );
-    else
+    else if( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
     {
         if( ep_dir_get( ep_num ) == DIR_IN )
         {
@@ -460,7 +461,7 @@ void ep_clear_stall(U8 ep_num)
 /**************************************************************************/
 void ep_reset_toggle(U8 ep_num)
 {
-    if( ep_num > 0 )
+    if( ( ep_num > 0 ) && ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
         SI32_USBEP_A_reset_out_data_toggle( usb_ep[ ep_num - 1 ] );
 }
 
@@ -565,16 +566,18 @@ U8 ep_intp_get_src()
 {
     U8 ep_num = ep_intp_get_num();
 
-    if( ep_num > 0 )
+    if( ( ep_num > 0 ) && ( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) ) )
     {
         if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_num - 1 ] ) )
             return OPRDYI;
     }
-    else
+    else if ( ep_num == 0 )
     {
         if( SI32_USB_A_is_out_packet_ready_ep0( SI32_USB_0 ) )
             return OPRDYI;
     }
+    else
+        return 0xFF;
 
     // EP0 / Control Endpoint Sources
     if( SI32_USB_A_is_suspend_interrupt_pending( SI32_USB_0 ) )
@@ -589,12 +592,12 @@ U8 ep_intp_get_src()
     if( SI32_USB_A_is_start_of_frame_interrupt_pending( SI32_USB_0 ) )
         return SOFI;
 
-    if( ep_num > 0 )
+    if( ( ep_num > 0 ) && ( ep_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) ) )
     {
         if( usb_ep[ ep_num - 1 ]->EPCONTROL.IPRDYI == 0 )
             return IPRDYI;
     }
-    else
+    else if ( ep_num == 0 )
     {
         if( SI32_USB_0->EP0CONTROL.IPRDYI == 0 )
             return IPRDYI;
