@@ -177,18 +177,21 @@ void ep0_handler( void )
 
 void usbep_handler( U8 ep_intp_num )
 {
-    //usb_pcb_t *pcb = usb_pcb_get();
-    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
-        SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
-
-    if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
-        SI32_USBEP_A_clear_out_stall_sent( usb_ep[ ep_intp_num - 1 ] );
-
-    if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
+    if( ( ep_intp_num > 0 ) && ep_intp_num <= sizeof( usb_ep ) / sizeof( usb_ep[ 0 ] ) )
     {
-        ep_read( ep_intp_num );
-        //pcb->pending_data |= ( 1 << ep_intp_num );
-        return;
+        //usb_pcb_t *pcb = usb_pcb_get();
+        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+            SI32_USBEP_A_clear_in_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+        if( usb_ep[ ep_intp_num - 1 ]->EPCONTROL.ISTSTLI )
+            SI32_USBEP_A_clear_out_stall_sent( usb_ep[ ep_intp_num - 1 ] );
+
+        if( SI32_USBEP_A_is_outpacket_ready( usb_ep[ ep_intp_num - 1 ] ))
+        {
+            ep_read( ep_intp_num );
+            //pcb->pending_data |= ( 1 << ep_intp_num );
+            return;
+        }
     }
 }
 
