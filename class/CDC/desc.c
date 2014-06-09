@@ -73,7 +73,7 @@ U8 cfg_desc[] PROGMEM =
     0x01,           // bConfigurationValue: Configuration value
     0x00,           // iConfiguration: Index of string descriptor describing the configuration
     0xA0,           // bmAttributes: bus powered
-    0x32,           // MaxPower 100 mA
+    0xFA,           // MaxPower 500 mA
 
     // intf descr
     0x09,           // bLength: Interface Descriptor size
