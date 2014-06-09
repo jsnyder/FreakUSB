@@ -74,6 +74,7 @@ void ctrl_get_desc(req_t *req)
     case DFU_FUNC_DESCR:
         desc        = desc_dfu_func_get();
         desc_len    = desc_dfu_func_get_len();
+        break;
 #endif
     case STR_DESCR:
         desc        = desc_str_get(desc_idx);

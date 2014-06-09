@@ -107,8 +107,8 @@ U8 dfu_functional_desc[] PROGMEM =
     0xFF,           // DetachTimeOut: 255 ms
     (wTransferSize & 0x00FF),
     (wTransferSize & 0xFF00) >> 8, /* TransferSize = 1024 Byte*/
-    0x1A,                          /* bcdDFUVersion*/
-    0x01
+    0x01,                          /* bcdDFUVersion*/
+    0x00
 };
 
 U8 lang_str_desc[] PROGMEM =
