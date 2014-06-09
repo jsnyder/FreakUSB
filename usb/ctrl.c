@@ -217,6 +217,7 @@ void ctrl_set_feat(req_t *req)
         break;
 
     case REMOTE_WAKEUP:
+        ep_send_zlp(EP_CTRL);
         pcb->flags |= (1<<REMOTE_WAKEUP_ENB);
         break;
 
