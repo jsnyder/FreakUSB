@@ -221,6 +221,17 @@ static void gTIMER1_enter_auto_reload_config(void)
 
 #endif // USE_DFU_CLASS
 
+#if defined( PCB_V7 )
+  #warning "Building for PCB V7"
+  //int pcb_v7_is_defined; //Will show a compiler warning to note hardware version
+
+#elif defined( PCB_V8 )
+  #warning "Building for PCB V8"
+  //int pcb_v8_is_defined;
+#else
+  #error "No PCB Revision Selected"
+#endif
+
 void hw_init()
 {
   usb_pcb_t *pcb = usb_pcb_get();
@@ -272,14 +283,7 @@ SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
 SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
 #if defined( PCB_V7 ) || defined( PCB_V8 )
-#if defined( PCB_V7 )
-  #warning "Building for PCB V7"
-  //int pcb_v7_is_defined; //Will show a compiler warning to note hardware version
-#endif
-#if defined( PCB_V8 )
-  #warning "Building for PCB V8"
-  //int pcb_v8_is_defined;
-#endif
+
   // Setup PBHD4
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBHD_A_write_pblock(SI32_PBHD_4, 0x00);
