@@ -171,7 +171,7 @@ void mySystemInit()
 
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_3, ( uint32_t ) 1 << 11);
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_3, ( uint32_t ) 1 << 11 ); //Set 5V regulator off
 #else
   SI32_PBSTD_A_write_pins_high(SI32_PBSTD_3, ( uint32_t ) 1 << 11 ); //Set 5V regulator off
@@ -228,6 +228,8 @@ static void gTIMER1_enter_auto_reload_config(void)
 #elif defined( PCB_V8 )
   #warning "Building for PCB V8"
   //int pcb_v8_is_defined;
+#elif defined (PCB_V10)
+  #warning "Building for PCB V10"
 #else
   #error "No PCB Revision Selected"
 #endif
@@ -282,7 +284,7 @@ SI32_PMU_A_clear_pin_level_shifter_hold(SI32_PMU_0);
 
 SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
-#if defined( PCB_V7 ) || defined( PCB_V8 )
+#if defined( PCB_V7 ) || defined( PCB_V8 ) || defined( PCB_V10 )
 
   // Setup PBHD4
   SI32_PBCFG_A_unlock_ports(SI32_PBCFG_0);
@@ -302,7 +304,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
   SI32_PBHD_A_set_pins_push_pull_output( SI32_PBHD_4, 0x000C );
   SI32_PBHD_A_disable_pullup_resistors( SI32_PBHD_4 );
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
   //Setup PB4.2 to HIGH to turn on mosfets for bat charger!
   SI32_PBHD_A_write_pins_high( SI32_PBHD_4, 0x04 );
 #else
@@ -333,7 +335,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
 #endif
 
-#if defined( PCB_V8 )
+#if defined( PCB_V8 ) || defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
 #endif
