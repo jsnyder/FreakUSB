@@ -320,13 +320,16 @@ U8 const * led_cled_ptr[] = {
   CLED_FLASH5
 };
 
+
 U8 led_pointer_tick = 0;
 U8 led_tick = 0;
 U8 led_repeat_tick = 0;
+U8 led_divider_tick = 0;
 
 U8 led_ticks = 0;
 
 U8 led_ticks_ptr[LED_COUNT] = { 0, 0, 0, 0, 0 };
+U8 led_background[LED_COUNT] = { 0, 0, 0, 0, 0 };
 
 U8 * led_mode_ptr[] = { (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF, (U8 *)CLED_OFF };
 U8 led_repeats_ptr[LED_COUNT] = { 10, 10, 10, 10, 10 };
@@ -343,9 +346,25 @@ U8 led_mask = 0x00;
 #define LED_PORT 2
 #endif
 
+#if defined( PCB_V7 ) || defined( PCB_V8 )
+#define MLED_PIN_0 4
+#define MLED_PIN_1 5
+#define MLED_PIN_2 6
+#define MLED_PIN_3 7
+#define MLED_PIN_4 8
+#define MLED_PIN_5 9
+#elif defined( PCB_V10 )
+#define MLED_PIN_0 8
+#define MLED_PIN_1 9
+#define MLED_PIN_2 10
+#define MLED_PIN_3 11
+#define MLED_PIN_4 12
+#define MLED_PIN_5 13
+#endif
+
 void TIMER1H_IRQHandler(void)
 {
-  led_ticks=((led_ticks+1) % 0xF);
+  led_ticks=((led_ticks+1) & 0x0F);
   if(!led_ticks)
   {
     if(led_pointer_tick == 3)
@@ -371,81 +390,85 @@ void TIMER1H_IRQHandler(void)
       }
 
       int lednum;
-      for(lednum=0;lednum<LED_COUNT;lednum++)
+      if( led_divider_tick == 0 )
       {
-        if(led_repeats_ptr[lednum] > 0)
+        for(lednum=0;lednum<LED_COUNT;lednum++)
         {
-          if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
-            led_repeats_ptr[lednum]--;
           if(led_repeats_ptr[lednum] > 0)
-            led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+          {
+            if((led_repeats_ptr[lednum] != LED_REPEATS_FOREVER) && ((led_tick % led_mode_ptr[lednum][0]) == 0))
+              led_repeats_ptr[lednum]--;
+            if(led_repeats_ptr[lednum] > 0)
+              led_ticks_ptr[lednum] = led_mode_ptr[lednum][(led_tick % led_mode_ptr[lednum][0])+1];
+          }
         }
+        led_tick++;
+        led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
       }
-      led_tick++;
-      led_repeat_tick = (led_repeat_tick+1) % LED_MAX_ARRAY;
+      led_divider_tick++;
+      led_divider_tick %= LEDTICK_DIVIDER;
     }
     led_pointer_tick++;
   }
   else
   {
-
-  if(led_ticks > led_ticks_ptr[0] && (led_mask & 1 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 5 ) );
-  else
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 5 ) );
-  if(led_ticks > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
-  {
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 6 ) );
-  #if !defined( MEMBRANE_V1)
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
-  #endif
-  #endif
+    if(led_ticks + led_background[0] > led_ticks_ptr[0] && (led_mask & 1 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_1 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_1 ) );
+    if(led_ticks + led_background[1] > led_ticks_ptr[1] && (led_mask & 1<<1 ) )
+    {
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_2 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_0 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    else
+    {
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_2 ) );
+    #if !defined( MEMBRANE_V1)
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_0 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+    #endif
+    #endif
+    }
+    if(led_ticks + led_background[2] > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_0 ) );
+    #else
+      SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_3 ) );
+    }
+    else
+    {
+    #if defined( MEMBRANE_V1)
+    #if defined( PCB_V8 ) || defined( PCB_V10 )
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_0 ) );
+    #else
+      SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
+    #endif
+    #endif
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_3 ) );
+    }
+    if(led_ticks + led_background[3] > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_4 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_4 ) );
+    if(led_ticks + led_background[4] > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
+      SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_5 ) );
+    else
+      SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << MLED_PIN_5 ) );
   }
-  else
-  {
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 6 ) );
-  #if !defined( MEMBRANE_V1)
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
-  #endif
-  #endif
-  }
-  if(led_ticks > led_ticks_ptr[2] && (led_mask & 1<<2 ) )
-  {
-  #if defined( MEMBRANE_V1)
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_high( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
-  #endif
-  #endif
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 7 ) );
-  }
-  else
-  {
-  #if defined( MEMBRANE_V1)
-  #if defined( PCB_V8 ) || defined( PCB_V10 )
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 4 ) );
-  #else
-    SI32_PBHD_A_write_pins_low( SI32_PBHD_4, ( ( U32 ) 1 << 3 ) );
-  #endif
-  #endif
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 7 ) );
-  }
-  if(led_ticks > led_ticks_ptr[3] && (led_mask & 1<<3 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 8 ) );
-  else
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 8 ) );
-  if(led_ticks > led_ticks_ptr[4] && (led_mask & 1<<4 ) )
-    SI32_PBSTD_A_write_pins_high( port_std[ LED_PORT ], ( ( U32 ) 1 << 9 ) );
-  else
-    SI32_PBSTD_A_write_pins_low( port_std[ LED_PORT ], ( ( U32 ) 1 << 9 ) );
- }
   // Clear the interrupt flag
   SI32_TIMER_A_clear_high_overflow_interrupt(SI32_TIMER_1);
 }

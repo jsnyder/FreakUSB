@@ -335,9 +335,15 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_2, 0x03E0); //Set external LEDS 0-4 as outputs
 #endif
 
-#if defined( PCB_V8 ) || defined( PCB_V10 )
+#if defined( PCB_V8 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3F0 ); //Set external LEDS 0-4 off
   SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F0); //Set external LEDS 0-4 as outputs
+#endif
+
+#if defined( PCB_V10 )
+  SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3FF0);
+  SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
+  SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
 #endif
 
   gTIMER1_enter_auto_reload_config();
@@ -574,6 +580,7 @@ void hw_boot_image( int usb_started )
 #if defined( USE_DFU_CLASS )
 
 extern U8 led_mask;
+extern U8 led_background[LED_COUNT];
 extern U8 * led_pending_mode_ptr[LED_COUNT];
 extern U8 const * led_cled_ptr[12];
 extern U8 led_pending_repeats_ptr[LED_COUNT];
@@ -581,7 +588,27 @@ extern U8 * led_mode_ptr[LED_COUNT];
 
 void hw_led_set_mask( U8 mask )
 {
+#if defined ( MEMBRANE_V1 )
   led_mask = mask;
+#else
+  // Module Board LED numbers
+  led_mask = 0;
+  led_mask |= ( ( mask & 1 ) << 3 ); // GPS
+  led_mask |= ( ( mask & 1 << 1 ) << 3 ); // MSG
+  led_mask |= ( ( mask & 1 << 2 ) >> 1 ); // PWR
+  led_mask |= ( ( mask & 1 << 3 ) >> 3 ); // SAT
+  led_mask |= ( ( mask & 1 << 4 ) >> 2 ); // ALRM
+#endif
+}
+
+void hw_led_set_background(int led, U8 bkgnd)
+{
+  if(led > LED_COUNT)
+    return;
+  if(bkgnd > 15)
+    bkgnd = 15;
+
+  led_background[led]  = bkgnd;
 }
 
 void hw_led_set_mode(int led, int mode, int cycles)

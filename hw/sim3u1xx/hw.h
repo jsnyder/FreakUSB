@@ -95,7 +95,8 @@ enum {
 
 #define LED_CONTINUOUS 255
 #define LED_REPEATS_FOREVER 255
-#define LEDTICKHZ 1250
+#define LEDTICKHZ 1000
+#define LEDTICK_DIVIDER 2
 //NOTE! These must be sized by a factor of 2 to calculate properly
 //First byte is size of the array
 #define LED_COUNT 5
