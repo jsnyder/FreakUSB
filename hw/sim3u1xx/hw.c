@@ -342,6 +342,7 @@ SI32_WDTIMER_A_stop_counter(SI32_WDTIMER_0);
 
 #if defined( PCB_V10 )
   SI32_PBSTD_A_write_pins_low(SI32_PBSTD_0, 0x3FF0);
+  SI32_PBSTD_A_set_pins_push_pull_output(SI32_PBSTD_0, 0x3F00); //Set external LEDS 0-4 as outputs
   SI32_PBSTD_A_set_pins_push_pull_output( SI32_PBSTD_1, 1 << 10);
   SI32_PBSTD_A_write_pins_low( SI32_PBSTD_1, 1 << 10 );
 #endif
