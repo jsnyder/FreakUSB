@@ -674,8 +674,9 @@ $(OBJDIR)/%.o : %.S
 %.i : %.c
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@
 
-version.c:
+version.c: FORCE
 	@perl version.pl
+FORCE:
 
 # Target: clean project.
 clean: begin clean_list end
