@@ -141,14 +141,25 @@ U8 prod_str_desc[] PROGMEM =
     'd',0,
 };
 
-U8 serial_str_desc[] PROGMEM =
-{
-    0x14,       // bLength: 0x14 (20 bytes = sizeof str fields + string)
-    STR_DESCR,  // bDescriptorType: String
-                // Serial: Beta 0.50
-    'B',0, 'e',0, 't',0, 'a',0, ' ',0, '0',0, '.',0, '5',0,
-    '0',0,
-};
+extern U8 serial_str_desc[] PROGMEM;
+
+// U8 serial_str_desc[] PROGMEM =
+// {
+//     0x1C,       // bLength: 0x14 (20 bytes = sizeof str fields + string)
+//     STR_DESCR,  // bDescriptorType: String
+//                 // Serial: Beta 0.50
+// #if defined( PCB_V7 )
+//     'V',0,'0',0,'7',0,'-',0,
+// #elif defined( PCB_V8 )
+//     'V',0,'0',0,'8',0,'-',0,
+// #elif defined( PCB_V10 )
+//     'V',0,'1',0,'0',0,'-',0,
+// #else
+//     #error "No PCB Revision Selected"
+// #endif
+//     'B',0, 'e',0, 't',0, 'a',0, ' ',0, '0',0, '.',0, '5',0,
+//     '0',0,
+// };
 
 /**************************************************************************/
 /*!

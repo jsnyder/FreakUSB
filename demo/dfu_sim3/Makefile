@@ -79,6 +79,8 @@ TARGET = main
 OBJDIR = .
 
 
+
+
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c \
 	../../usb/usb.c \
@@ -114,9 +116,12 @@ ifeq ($(MCU), sim3u1xx)
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/system_sim3u1xx.c \
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/SI32_RSTSRC_A_Type.c \
 		../../hw/sim3u1xx/si32Hal/sim3u1xx/SI32_PBCFG_A_Type.c \
-		syscalls.c
+		syscalls.c \
+		version.c
 endif
 	
+
+
 
 # List C++ source files here. (C dependencies are automatically generated.)
 CPPSRC =
@@ -669,6 +674,8 @@ $(OBJDIR)/%.o : %.S
 %.i : %.c
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@
 
+version.c:
+	@perl version.pl
 
 # Target: clean project.
 clean: begin clean_list end
